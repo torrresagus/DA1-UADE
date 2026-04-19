@@ -1,0 +1,9 @@
+from app.schemas.usuario import *  # noqa: F401,F403
+from app.schemas.rematador import *  # noqa: F401,F403
+from app.schemas.medio_pago import *  # noqa: F401,F403
+from app.schemas.articulo import *  # noqa: F401,F403
+from app.schemas.subasta import *  # noqa: F401,F403
+from app.schemas.puja import *  # noqa: F401,F403
+from app.schemas.venta import *  # noqa: F401,F403
+from app.schemas.multa import *  # noqa: F401,F403
+from app.schemas.solicitud import *  # noqa: F401,F403

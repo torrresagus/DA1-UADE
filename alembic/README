@@ -1,0 +1,7 @@
+Generic single-database configuration.
+
+Generate a new revision autodetecting changes against the models:
+    alembic revision --autogenerate -m "mensaje"
+
+Apply migrations:
+    alembic upgrade head

@@ -1,0 +1,3838 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+      "title": "Sistema de Subastas API",
+      "description": "API REST del Sistema de Subastas — UADE Desarrollo de Aplicaciones I, 1C 2026. Gestiona registración de postores, catálogo, subastas, pujas, ventas, multas, seguros y solicitudes de incorporación de bienes.",
+      "contact": {
+        "name": "Equipo DA1",
+        "email": "agustin.torres@majily.com"
+      },
+      "version": "0.1.0"
+    },
+    "paths": {
+      "/health": {
+        "get": {
+          "tags": [
+            "Sistema"
+          ],
+          "summary": "Healthcheck",
+          "operationId": "health_health_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+  
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/usuarios/registro/etapa-1": {
+        "post": {
+          "tags": [
+            "Usuarios"
+          ],
+          "summary": "Registrar datos iniciales del postor (etapa 1)",
+          "operationId": "registrar_etapa_1_usuarios_registro_etapa_1_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRegistroEtapa1"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/UsuarioOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/usuarios/{usuario_id}/aprobacion": {
+        "post": {
+          "tags": [
+            "Usuarios"
+          ],
+          "summary": "La empresa aprueba y asigna categoría tras la verificación externa",
+          "operationId": "aprobar_usuario_usuarios__usuario_id__aprobacion_post",
+          "parameters": [
+            {
+              "name": "usuario_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Usuario Id"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioAprobacion"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/UsuarioOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/usuarios/{usuario_id}/registro/etapa-2": {
+        "post": {
+          "tags": [
+            "Usuarios"
+          ],
+          "summary": "Postor completa el registro y genera su clave (etapa 2)",
+          "operationId": "registrar_etapa_2_usuarios__usuario_id__registro_etapa_2_post",
+          "parameters": [
+            {
+              "name": "usuario_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Usuario Id"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioRegistroEtapa2"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/UsuarioOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/usuarios": {
+        "get": {
+          "tags": [
+            "Usuarios"
+          ],
+          "summary": "Listar usuarios",
+          "operationId": "listar_usuarios_usuarios_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "items": {
+                      "$ref": "#/components/schemas/UsuarioOut"
+                    },
+                    "type": "array",
+                    "title": "Response Listar Usuarios Usuarios Get"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/usuarios/{usuario_id}": {
+        "get": {
+          "tags": [
+            "Usuarios"
+          ],
+          "summary": "Obtener usuario por id",
+          "operationId": "obtener_usuario_usuarios__usuario_id__get",
+          "parameters": [
+            {
+              "name": "usuario_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Usuario Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/UsuarioOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/usuarios/{usuario_id}/cuentas-cobro": {
+        "post": {
+          "tags": [
+            "Usuarios"
+          ],
+          "summary": "Declarar cuenta a la vista para liquidar ventas",
+          "operationId": "crear_cuenta_cobro_usuarios__usuario_id__cuentas_cobro_post",
+          "parameters": [
+            {
+              "name": "usuario_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Usuario Id"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CuentaCobroCreate"
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/CuentaCobroOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "get": {
+          "tags": [
+            "Usuarios"
+          ],
+          "summary": "Listar cuentas de cobro del usuario",
+          "operationId": "listar_cuentas_cobro_usuarios__usuario_id__cuentas_cobro_get",
+          "parameters": [
+            {
+              "name": "usuario_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Usuario Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/CuentaCobroOut"
+                    },
+                    "title": "Response Listar Cuentas Cobro Usuarios  Usuario Id  Cuentas Cobro Get"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/usuarios/{usuario_id}/medios-pago": {
+        "post": {
+          "tags": [
+            "Medios de pago"
+          ],
+          "summary": "Registrar medio de pago para el usuario",
+          "operationId": "crear_medio_pago_usuarios__usuario_id__medios_pago_post",
+          "parameters": [
+            {
+              "name": "usuario_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Usuario Id"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedioPagoCreate"
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/MedioPagoOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "get": {
+          "tags": [
+            "Medios de pago"
+          ],
+          "summary": "Listar medios de pago del usuario",
+          "operationId": "listar_medios_pago_usuarios__usuario_id__medios_pago_get",
+          "parameters": [
+            {
+              "name": "usuario_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Usuario Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/MedioPagoOut"
+                    },
+                    "title": "Response Listar Medios Pago Usuarios  Usuario Id  Medios Pago Get"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/usuarios/{usuario_id}/medios-pago/{mp_id}/verificar": {
+        "post": {
+          "tags": [
+            "Medios de pago"
+          ],
+          "summary": "Verificar (o rechazar) un medio de pago antes del inicio de la subasta",
+          "operationId": "verificar_medio_pago_usuarios__usuario_id__medios_pago__mp_id__verificar_post",
+          "parameters": [
+            {
+              "name": "usuario_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Usuario Id"
+              }
+            },
+            {
+              "name": "mp_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Mp Id"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedioPagoVerificar"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/MedioPagoOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/usuarios/{usuario_id}/medios-pago/{mp_id}": {
+        "delete": {
+          "tags": [
+            "Medios de pago"
+          ],
+          "summary": "Eliminar medio de pago",
+          "operationId": "eliminar_medio_pago_usuarios__usuario_id__medios_pago__mp_id__delete",
+          "parameters": [
+            {
+              "name": "usuario_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Usuario Id"
+              }
+            },
+            {
+              "name": "mp_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Mp Id"
+              }
+            }
+          ],
+          "responses": {
+            "204": {
+              "description": "Successful Response"
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/rematadores": {
+        "get": {
+          "tags": [
+            "Rematadores"
+          ],
+          "summary": "Listar Rematadores",
+          "operationId": "listar_rematadores_rematadores_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "items": {
+                      "$ref": "#/components/schemas/RematadorOut"
+                    },
+                    "type": "array",
+                    "title": "Response Listar Rematadores Rematadores Get"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "post": {
+          "tags": [
+            "Rematadores"
+          ],
+          "summary": "Crear Rematador",
+          "operationId": "crear_rematador_rematadores_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RematadorCreate"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/RematadorOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/rematadores/{rematador_id}": {
+        "get": {
+          "tags": [
+            "Rematadores"
+          ],
+          "summary": "Obtener Rematador",
+          "operationId": "obtener_rematador_rematadores__rematador_id__get",
+          "parameters": [
+            {
+              "name": "rematador_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Rematador Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/RematadorOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/articulos": {
+        "get": {
+          "tags": [
+            "Artículos"
+          ],
+          "summary": "Listar Articulos",
+          "operationId": "listar_articulos_articulos_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "items": {
+                      "$ref": "#/components/schemas/ArticuloOut"
+                    },
+                    "type": "array",
+                    "title": "Response Listar Articulos Articulos Get"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "post": {
+          "tags": [
+            "Artículos"
+          ],
+          "summary": "Crear Articulo",
+          "operationId": "crear_articulo_articulos_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticuloCreate"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ArticuloOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/articulos/{articulo_id}": {
+        "get": {
+          "tags": [
+            "Artículos"
+          ],
+          "summary": "Obtener Articulo",
+          "operationId": "obtener_articulo_articulos__articulo_id__get",
+          "parameters": [
+            {
+              "name": "articulo_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Articulo Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ArticuloOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/articulos/{articulo_id}/deposito/{deposito_id}": {
+        "put": {
+          "tags": [
+            "Artículos"
+          ],
+          "summary": "Asignar Deposito",
+          "operationId": "asignar_deposito_articulos__articulo_id__deposito__deposito_id__put",
+          "parameters": [
+            {
+              "name": "articulo_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Articulo Id"
+              }
+            },
+            {
+              "name": "deposito_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Deposito Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ArticuloOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/depositos": {
+        "get": {
+          "tags": [
+            "Depósitos"
+          ],
+          "summary": "Listar Depositos",
+          "operationId": "listar_depositos_depositos_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "items": {
+                      "$ref": "#/components/schemas/DepositoOut"
+                    },
+                    "type": "array",
+                    "title": "Response Listar Depositos Depositos Get"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "post": {
+          "tags": [
+            "Depósitos"
+          ],
+          "summary": "Crear Deposito",
+          "operationId": "crear_deposito_depositos_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepositoCreate"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/DepositoOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/seguros": {
+        "get": {
+          "tags": [
+            "Seguros"
+          ],
+          "summary": "Listar Seguros",
+          "operationId": "listar_seguros_seguros_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "items": {
+                      "$ref": "#/components/schemas/SeguroOut"
+                    },
+                    "type": "array",
+                    "title": "Response Listar Seguros Seguros Get"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "post": {
+          "tags": [
+            "Seguros"
+          ],
+          "summary": "Crear Seguro",
+          "operationId": "crear_seguro_seguros_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeguroCreate"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/SeguroOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/subastas": {
+        "post": {
+          "tags": [
+            "Subastas"
+          ],
+          "summary": "Crear Subasta",
+          "operationId": "crear_subasta_subastas_post",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubastaCreate"
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/SubastaOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "get": {
+          "tags": [
+            "Subastas"
+          ],
+          "summary": "Listar subastas (vista interna)",
+          "operationId": "listar_subastas_subastas_get",
+          "parameters": [
+            {
+              "name": "estado",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/EstadoSubasta"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Estado"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/SubastaOut"
+                    },
+                    "title": "Response Listar Subastas Subastas Get"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/subastas/publicas": {
+        "get": {
+          "tags": [
+            "Subastas"
+          ],
+          "summary": "Catálogo público (sin precios base)",
+          "operationId": "listar_subastas_publicas_subastas_publicas_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "items": {
+                      "$ref": "#/components/schemas/SubastaPublicaOut"
+                    },
+                    "type": "array",
+                    "title": "Response Listar Subastas Publicas Subastas Publicas Get"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/subastas/{subasta_id}": {
+        "get": {
+          "tags": [
+            "Subastas"
+          ],
+          "summary": "Obtener Subasta",
+          "operationId": "obtener_subasta_subastas__subasta_id__get",
+          "parameters": [
+            {
+              "name": "subasta_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Subasta Id"
+              }
+            },
+            {
+              "name": "usuario_id",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Si se informa, valida acceso",
+                "title": "Usuario Id"
+              },
+              "description": "Si se informa, valida acceso"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/SubastaOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/subastas/{subasta_id}/estado": {
+        "post": {
+          "tags": [
+            "Subastas"
+          ],
+          "summary": "Cambiar Estado",
+          "operationId": "cambiar_estado_subastas__subasta_id__estado_post",
+          "parameters": [
+            {
+              "name": "subasta_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Subasta Id"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubastaCambioEstado"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/SubastaOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/subastas/{subasta_id}/catalogo": {
+        "post": {
+          "tags": [
+            "Subastas"
+          ],
+          "summary": "Agregar artículo al catálogo de la subasta",
+          "operationId": "agregar_item_catalogo_subastas__subasta_id__catalogo_post",
+          "parameters": [
+            {
+              "name": "subasta_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Subasta Id"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogoItemCreate"
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/CatalogoItemOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "get": {
+          "tags": [
+            "Subastas"
+          ],
+          "summary": "Catálogo completo (con precios base) — requiere usuario registrado",
+          "operationId": "listar_catalogo_subastas__subasta_id__catalogo_get",
+          "parameters": [
+            {
+              "name": "subasta_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Subasta Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/CatalogoItemOut"
+                    },
+                    "title": "Response Listar Catalogo Subastas  Subasta Id  Catalogo Get"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/pujas": {
+        "post": {
+          "tags": [
+            "Pujas"
+          ],
+          "summary": "Registrar una puja (valida reglas de incremento)",
+          "operationId": "crear_puja_pujas_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PujaCreate"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/PujaOut"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Puja inválida (rango, usuario bloqueado, subasta cerrada, etc.)"
+            },
+            "404": {
+              "description": "Ítem, subasta o usuario no encontrado"
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/pujas/item/{catalogo_item_id}": {
+        "get": {
+          "tags": [
+            "Pujas"
+          ],
+          "summary": "Historial de pujas de un ítem (orden cronológico)",
+          "operationId": "historial_item_pujas_item__catalogo_item_id__get",
+          "parameters": [
+            {
+              "name": "catalogo_item_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Catalogo Item Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/PujaOut"
+                    },
+                    "title": "Response Historial Item Pujas Item  Catalogo Item Id  Get"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/pujas/item/{catalogo_item_id}/mejor": {
+        "get": {
+          "tags": [
+            "Pujas"
+          ],
+          "summary": "Mejor oferta actual y rango válido para la próxima puja",
+          "operationId": "mejor_oferta_pujas_item__catalogo_item_id__mejor_get",
+          "parameters": [
+            {
+              "name": "catalogo_item_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Catalogo Item Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/MejorOferta"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/pujas/usuario/{usuario_id}": {
+        "get": {
+          "tags": [
+            "Pujas"
+          ],
+          "summary": "Historial de pujas de un usuario",
+          "operationId": "historial_usuario_pujas_usuario__usuario_id__get",
+          "parameters": [
+            {
+              "name": "usuario_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Usuario Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/PujaOut"
+                    },
+                    "title": "Response Historial Usuario Pujas Usuario  Usuario Id  Get"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/ventas/cerrar/{catalogo_item_id}": {
+        "post": {
+          "tags": [
+            "Ventas"
+          ],
+          "summary": "Cerrar la venta tomando la mejor puja del ítem",
+          "operationId": "cerrar_venta_ventas_cerrar__catalogo_item_id__post",
+          "parameters": [
+            {
+              "name": "catalogo_item_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Catalogo Item Id"
+              }
+            },
+            {
+              "name": "medio_pago_id",
+              "in": "query",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Medio Pago Id"
+              }
+            },
+            {
+              "name": "comision_pct",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "default": "0.10",
+                "title": "Comision Pct"
+              }
+            },
+            {
+              "name": "costo_envio",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "default": "0",
+                "title": "Costo Envio"
+              }
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/VentaOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/ventas/{venta_id}/impago": {
+        "post": {
+          "tags": [
+            "Ventas"
+          ],
+          "summary": "Registrar impago: genera multa del 10% y bloquea al usuario",
+          "operationId": "registrar_impago_ventas__venta_id__impago_post",
+          "parameters": [
+            {
+              "name": "venta_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Venta Id"
+              }
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+  
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/ventas": {
+        "get": {
+          "tags": [
+            "Ventas"
+          ],
+          "summary": "Listar ventas",
+          "operationId": "listar_ventas_ventas_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "items": {
+                      "$ref": "#/components/schemas/VentaOut"
+                    },
+                    "type": "array",
+                    "title": "Response Listar Ventas Ventas Get"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/ventas/{venta_id}": {
+        "get": {
+          "tags": [
+            "Ventas"
+          ],
+          "summary": "Obtener Venta",
+          "operationId": "obtener_venta_ventas__venta_id__get",
+          "parameters": [
+            {
+              "name": "venta_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Venta Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/VentaOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/ventas/{venta_id}/pagar": {
+        "post": {
+          "tags": [
+            "Ventas"
+          ],
+          "summary": "Marcar venta como pagada",
+          "operationId": "marcar_pagada_ventas__venta_id__pagar_post",
+          "parameters": [
+            {
+              "name": "venta_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Venta Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/VentaOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/multas": {
+        "post": {
+          "tags": [
+            "Multas"
+          ],
+          "summary": "Crear Multa",
+          "operationId": "crear_multa_multas_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MultaCreate"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/MultaOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/multas/usuario/{usuario_id}": {
+        "get": {
+          "tags": [
+            "Multas"
+          ],
+          "summary": "Listar Por Usuario",
+          "operationId": "listar_por_usuario_multas_usuario__usuario_id__get",
+          "parameters": [
+            {
+              "name": "usuario_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Usuario Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/MultaOut"
+                    },
+                    "title": "Response Listar Por Usuario Multas Usuario  Usuario Id  Get"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/multas/{multa_id}/pagar": {
+        "post": {
+          "tags": [
+            "Multas"
+          ],
+          "summary": "Marcar multa como pagada",
+          "operationId": "pagar_multa_multas__multa_id__pagar_post",
+          "parameters": [
+            {
+              "name": "multa_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Multa Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/MultaOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/solicitudes/{usuario_id}": {
+        "post": {
+          "tags": [
+            "Solicitudes de subasta"
+          ],
+          "summary": "Postor solicita incluir un bien en una futura subasta",
+          "operationId": "crear_solicitud_solicitudes__usuario_id__post",
+          "parameters": [
+            {
+              "name": "usuario_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Usuario Id"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitudCreate"
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/SolicitudOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/solicitudes/{solicitud_id}": {
+        "get": {
+          "tags": [
+            "Solicitudes de subasta"
+          ],
+          "summary": "Obtener Solicitud",
+          "operationId": "obtener_solicitud_solicitudes__solicitud_id__get",
+          "parameters": [
+            {
+              "name": "solicitud_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Solicitud Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/SolicitudOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/solicitudes": {
+        "get": {
+          "tags": [
+            "Solicitudes de subasta"
+          ],
+          "summary": "Listar Solicitudes",
+          "operationId": "listar_solicitudes_solicitudes_get",
+          "parameters": [
+            {
+              "name": "estado",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/EstadoSolicitud"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Estado"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/SolicitudOut"
+                    },
+                    "title": "Response Listar Solicitudes Solicitudes Get"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/solicitudes/{solicitud_id}/resolver": {
+        "post": {
+          "tags": [
+            "Solicitudes de subasta"
+          ],
+          "summary": "La empresa acepta o rechaza la solicitud tras la inspección",
+          "operationId": "resolver_solicitud_solicitudes__solicitud_id__resolver_post",
+          "parameters": [
+            {
+              "name": "solicitud_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Solicitud Id"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitudResolucion"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/SolicitudOut"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/metricas/usuario/{usuario_id}": {
+        "get": {
+          "tags": [
+            "Métricas"
+          ],
+          "summary": "Métricas de participación del usuario",
+          "operationId": "metricas_usuario_metricas_usuario__usuario_id__get",
+          "parameters": [
+            {
+              "name": "usuario_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Usuario Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+  
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/metricas/subasta/{subasta_id}": {
+        "get": {
+          "tags": [
+            "Métricas"
+          ],
+          "summary": "Métricas generales de una subasta",
+          "operationId": "metricas_subasta_metricas_subasta__subasta_id__get",
+          "parameters": [
+            {
+              "name": "subasta_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "title": "Subasta Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+  
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "ArticuloCreate": {
+          "properties": {
+            "numero_pieza": {
+              "type": "string",
+              "title": "Numero Pieza"
+            },
+            "descripcion": {
+              "type": "string",
+              "title": "Descripcion"
+            },
+            "precio_base": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Precio Base"
+            },
+            "moneda": {
+              "type": "string",
+              "title": "Moneda",
+              "default": "ARS"
+            },
+            "dueno_actual_id": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dueno Actual Id"
+            },
+            "artista": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Artista"
+            },
+            "fecha_obra": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fecha Obra"
+            },
+            "historia": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Historia"
+            },
+            "cantidad_elementos": {
+              "type": "integer",
+              "title": "Cantidad Elementos",
+              "default": 1
+            },
+            "imagenes": {
+              "items": {
+                "$ref": "#/components/schemas/ImagenArticuloCreate"
+              },
+              "type": "array",
+              "title": "Imagenes"
+            }
+          },
+          "type": "object",
+          "required": [
+            "numero_pieza",
+            "descripcion",
+            "precio_base"
+          ],
+          "title": "ArticuloCreate"
+        },
+        "ArticuloOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "numero_pieza": {
+              "type": "string",
+              "title": "Numero Pieza"
+            },
+            "descripcion": {
+              "type": "string",
+              "title": "Descripcion"
+            },
+            "precio_base": {
+              "type": "string",
+              "title": "Precio Base"
+            },
+            "moneda": {
+              "type": "string",
+              "title": "Moneda"
+            },
+            "dueno_actual_id": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dueno Actual Id"
+            },
+            "artista": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Artista"
+            },
+            "fecha_obra": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fecha Obra"
+            },
+            "historia": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Historia"
+            },
+            "cantidad_elementos": {
+              "type": "integer",
+              "title": "Cantidad Elementos"
+            },
+            "estado": {
+              "$ref": "#/components/schemas/EstadoArticulo"
+            },
+            "deposito_id": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Deposito Id"
+            },
+            "imagenes": {
+              "items": {
+                "$ref": "#/components/schemas/ImagenArticuloOut"
+              },
+              "type": "array",
+              "title": "Imagenes",
+              "default": []
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "numero_pieza",
+            "descripcion",
+            "precio_base",
+            "moneda",
+            "cantidad_elementos",
+            "estado"
+          ],
+          "title": "ArticuloOut"
+        },
+        "CatalogoItemCreate": {
+          "properties": {
+            "articulo_id": {
+              "type": "integer",
+              "title": "Articulo Id"
+            },
+            "precio_base": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Precio Base"
+            },
+            "orden": {
+              "type": "integer",
+              "title": "Orden",
+              "default": 0
+            }
+          },
+          "type": "object",
+          "required": [
+            "articulo_id",
+            "precio_base"
+          ],
+          "title": "CatalogoItemCreate"
+        },
+        "CatalogoItemOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "subasta_id": {
+              "type": "integer",
+              "title": "Subasta Id"
+            },
+            "articulo_id": {
+              "type": "integer",
+              "title": "Articulo Id"
+            },
+            "precio_base": {
+              "type": "string",
+              "title": "Precio Base"
+            },
+            "orden": {
+              "type": "integer",
+              "title": "Orden"
+            },
+            "vendido": {
+              "type": "boolean",
+              "title": "Vendido"
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "subasta_id",
+            "articulo_id",
+            "precio_base",
+            "orden",
+            "vendido"
+          ],
+          "title": "CatalogoItemOut"
+        },
+        "CatalogoPublicoItem": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "articulo_id": {
+              "type": "integer",
+              "title": "Articulo Id"
+            },
+            "orden": {
+              "type": "integer",
+              "title": "Orden"
+            },
+            "vendido": {
+              "type": "boolean",
+              "title": "Vendido"
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "articulo_id",
+            "orden",
+            "vendido"
+          ],
+          "title": "CatalogoPublicoItem",
+          "description": "Ítem visible públicamente (sin precio base)."
+        },
+        "CategoriaUsuario": {
+          "type": "string",
+          "enum": [
+            "comun",
+            "especial",
+            "plata",
+            "oro",
+            "platino"
+          ],
+          "title": "CategoriaUsuario"
+        },
+        "CuentaCobroCreate": {
+          "properties": {
+            "banco": {
+              "type": "string",
+              "title": "Banco"
+            },
+            "pais": {
+              "type": "string",
+              "title": "Pais"
+            },
+            "numero_cuenta": {
+              "type": "string",
+              "title": "Numero Cuenta"
+            },
+            "titular": {
+              "type": "string",
+              "title": "Titular"
+            },
+            "declarada_antes_subasta": {
+              "type": "boolean",
+              "title": "Declarada Antes Subasta",
+              "default": false
+            }
+          },
+          "type": "object",
+          "required": [
+            "banco",
+            "pais",
+            "numero_cuenta",
+            "titular"
+          ],
+          "title": "CuentaCobroCreate"
+        },
+        "CuentaCobroOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "usuario_id": {
+              "type": "integer",
+              "title": "Usuario Id"
+            },
+            "banco": {
+              "type": "string",
+              "title": "Banco"
+            },
+            "pais": {
+              "type": "string",
+              "title": "Pais"
+            },
+            "numero_cuenta": {
+              "type": "string",
+              "title": "Numero Cuenta"
+            },
+            "titular": {
+              "type": "string",
+              "title": "Titular"
+            },
+            "declarada_antes_subasta": {
+              "type": "boolean",
+              "title": "Declarada Antes Subasta"
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "usuario_id",
+            "banco",
+            "pais",
+            "numero_cuenta",
+            "titular",
+            "declarada_antes_subasta"
+          ],
+          "title": "CuentaCobroOut"
+        },
+        "DepositoCreate": {
+          "properties": {
+            "nombre": {
+              "type": "string",
+              "title": "Nombre"
+            },
+            "direccion": {
+              "type": "string",
+              "title": "Direccion"
+            },
+            "ciudad": {
+              "type": "string",
+              "title": "Ciudad"
+            }
+          },
+          "type": "object",
+          "required": [
+            "nombre",
+            "direccion",
+            "ciudad"
+          ],
+          "title": "DepositoCreate"
+        },
+        "DepositoOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "nombre": {
+              "type": "string",
+              "title": "Nombre"
+            },
+            "direccion": {
+              "type": "string",
+              "title": "Direccion"
+            },
+            "ciudad": {
+              "type": "string",
+              "title": "Ciudad"
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "nombre",
+            "direccion",
+            "ciudad"
+          ],
+          "title": "DepositoOut"
+        },
+        "EstadoArticulo": {
+          "type": "string",
+          "enum": [
+            "disponible",
+            "en_subasta",
+            "vendido",
+            "retirado"
+          ],
+          "title": "EstadoArticulo"
+        },
+        "EstadoMedioPago": {
+          "type": "string",
+          "enum": [
+            "pendiente",
+            "verificado",
+            "rechazado"
+          ],
+          "title": "EstadoMedioPago"
+        },
+        "EstadoPuja": {
+          "type": "string",
+          "enum": [
+            "pendiente",
+            "confirmada",
+            "rechazada"
+          ],
+          "title": "EstadoPuja"
+        },
+        "EstadoRegistro": {
+          "type": "string",
+          "enum": [
+            "pendiente_verificacion",
+            "aprobado_fase_1",
+            "completo",
+            "rechazado",
+            "bloqueado"
+          ],
+          "title": "EstadoRegistro"
+        },
+        "EstadoSolicitud": {
+          "type": "string",
+          "enum": [
+            "ingresada",
+            "en_inspeccion",
+            "aceptada",
+            "rechazada",
+            "devuelta"
+          ],
+          "title": "EstadoSolicitud"
+        },
+        "EstadoSubasta": {
+          "type": "string",
+          "enum": [
+            "programada",
+            "abierta",
+            "cerrada",
+            "cancelada"
+          ],
+          "title": "EstadoSubasta"
+        },
+        "HTTPValidationError": {
+          "properties": {
+            "detail": {
+              "items": {
+                "$ref": "#/components/schemas/ValidationError"
+              },
+              "type": "array",
+              "title": "Detail"
+            }
+          },
+          "type": "object",
+          "title": "HTTPValidationError"
+        },
+        "ImagenArticuloCreate": {
+          "properties": {
+            "url": {
+              "type": "string",
+              "title": "Url"
+            },
+            "orden": {
+              "type": "integer",
+              "title": "Orden",
+              "default": 0
+            }
+          },
+          "type": "object",
+          "required": [
+            "url"
+          ],
+          "title": "ImagenArticuloCreate"
+        },
+        "ImagenArticuloOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "url": {
+              "type": "string",
+              "title": "Url"
+            },
+            "orden": {
+              "type": "integer",
+              "title": "Orden"
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "url",
+            "orden"
+          ],
+          "title": "ImagenArticuloOut"
+        },
+        "ImagenSolicitudCreate": {
+          "properties": {
+            "url": {
+              "type": "string",
+              "title": "Url"
+            },
+            "orden": {
+              "type": "integer",
+              "title": "Orden",
+              "default": 0
+            }
+          },
+          "type": "object",
+          "required": [
+            "url"
+          ],
+          "title": "ImagenSolicitudCreate"
+        },
+        "ImagenSolicitudOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "url": {
+              "type": "string",
+              "title": "Url"
+            },
+            "orden": {
+              "type": "integer",
+              "title": "Orden"
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "url",
+            "orden"
+          ],
+          "title": "ImagenSolicitudOut"
+        },
+        "MedioPagoCreate": {
+          "properties": {
+            "tipo": {
+              "$ref": "#/components/schemas/TipoMedioPago"
+            },
+            "titular": {
+              "type": "string",
+              "title": "Titular"
+            },
+            "detalle": {
+              "type": "string",
+              "title": "Detalle"
+            },
+            "pais": {
+              "type": "string",
+              "title": "Pais"
+            },
+            "monto_garantia": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Monto Garantia"
+            },
+            "moneda": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Moneda"
+            }
+          },
+          "type": "object",
+          "required": [
+            "tipo",
+            "titular",
+            "detalle",
+            "pais"
+          ],
+          "title": "MedioPagoCreate"
+        },
+        "MedioPagoOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "usuario_id": {
+              "type": "integer",
+              "title": "Usuario Id"
+            },
+            "tipo": {
+              "$ref": "#/components/schemas/TipoMedioPago"
+            },
+            "titular": {
+              "type": "string",
+              "title": "Titular"
+            },
+            "detalle": {
+              "type": "string",
+              "title": "Detalle"
+            },
+            "pais": {
+              "type": "string",
+              "title": "Pais"
+            },
+            "monto_garantia": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Monto Garantia"
+            },
+            "moneda": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Moneda"
+            },
+            "estado": {
+              "$ref": "#/components/schemas/EstadoMedioPago"
+            },
+            "verificado": {
+              "type": "boolean",
+              "title": "Verificado"
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "usuario_id",
+            "tipo",
+            "titular",
+            "detalle",
+            "pais",
+            "estado",
+            "verificado"
+          ],
+          "title": "MedioPagoOut"
+        },
+        "MedioPagoVerificar": {
+          "properties": {
+            "verificado": {
+              "type": "boolean",
+              "title": "Verificado"
+            }
+          },
+          "type": "object",
+          "required": [
+            "verificado"
+          ],
+          "title": "MedioPagoVerificar"
+        },
+        "MejorOferta": {
+          "properties": {
+            "catalogo_item_id": {
+              "type": "integer",
+              "title": "Catalogo Item Id"
+            },
+            "mejor_monto": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Mejor Monto"
+            },
+            "usuario_id": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Usuario Id"
+            },
+            "minimo_proxima": {
+              "type": "string",
+              "title": "Minimo Proxima"
+            },
+            "maximo_proxima": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Maximo Proxima"
+            }
+          },
+          "type": "object",
+          "required": [
+            "catalogo_item_id",
+            "minimo_proxima"
+          ],
+          "title": "MejorOferta"
+        },
+        "Moneda": {
+          "type": "string",
+          "enum": [
+            "ARS",
+            "USD"
+          ],
+          "title": "Moneda"
+        },
+        "MultaCreate": {
+          "properties": {
+            "usuario_id": {
+              "type": "integer",
+              "title": "Usuario Id"
+            },
+            "venta_id": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Venta Id"
+            },
+            "monto": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Monto"
+            },
+            "moneda": {
+              "type": "string",
+              "title": "Moneda",
+              "default": "ARS"
+            },
+            "motivo": {
+              "type": "string",
+              "title": "Motivo"
+            }
+          },
+          "type": "object",
+          "required": [
+            "usuario_id",
+            "monto",
+            "motivo"
+          ],
+          "title": "MultaCreate"
+        },
+        "MultaOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "usuario_id": {
+              "type": "integer",
+              "title": "Usuario Id"
+            },
+            "venta_id": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Venta Id"
+            },
+            "monto": {
+              "type": "string",
+              "title": "Monto"
+            },
+            "moneda": {
+              "type": "string",
+              "title": "Moneda"
+            },
+            "motivo": {
+              "type": "string",
+              "title": "Motivo"
+            },
+            "pagada": {
+              "type": "boolean",
+              "title": "Pagada"
+            },
+            "fecha": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Fecha"
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "usuario_id",
+            "venta_id",
+            "monto",
+            "moneda",
+            "motivo",
+            "pagada",
+            "fecha"
+          ],
+          "title": "MultaOut"
+        },
+        "PujaCreate": {
+          "properties": {
+            "catalogo_item_id": {
+              "type": "integer",
+              "title": "Catalogo Item Id"
+            },
+            "usuario_id": {
+              "type": "integer",
+              "title": "Usuario Id"
+            },
+            "monto": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Monto"
+            }
+          },
+          "type": "object",
+          "required": [
+            "catalogo_item_id",
+            "usuario_id",
+            "monto"
+          ],
+          "title": "PujaCreate"
+        },
+        "PujaOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "subasta_id": {
+              "type": "integer",
+              "title": "Subasta Id"
+            },
+            "catalogo_item_id": {
+              "type": "integer",
+              "title": "Catalogo Item Id"
+            },
+            "usuario_id": {
+              "type": "integer",
+              "title": "Usuario Id"
+            },
+            "monto": {
+              "type": "string",
+              "title": "Monto"
+            },
+            "fecha_hora": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Fecha Hora"
+            },
+            "estado": {
+              "$ref": "#/components/schemas/EstadoPuja"
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "subasta_id",
+            "catalogo_item_id",
+            "usuario_id",
+            "monto",
+            "fecha_hora",
+            "estado"
+          ],
+          "title": "PujaOut"
+        },
+        "RematadorCreate": {
+          "properties": {
+            "nombre": {
+              "type": "string",
+              "title": "Nombre"
+            },
+            "apellido": {
+              "type": "string",
+              "title": "Apellido"
+            },
+            "matricula": {
+              "type": "string",
+              "title": "Matricula"
+            }
+          },
+          "type": "object",
+          "required": [
+            "nombre",
+            "apellido",
+            "matricula"
+          ],
+          "title": "RematadorCreate"
+        },
+        "RematadorOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "nombre": {
+              "type": "string",
+              "title": "Nombre"
+            },
+            "apellido": {
+              "type": "string",
+              "title": "Apellido"
+            },
+            "matricula": {
+              "type": "string",
+              "title": "Matricula"
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "nombre",
+            "apellido",
+            "matricula"
+          ],
+          "title": "RematadorOut"
+        },
+        "SeguroCreate": {
+          "properties": {
+            "nro_poliza": {
+              "type": "string",
+              "title": "Nro Poliza"
+            },
+            "compania": {
+              "type": "string",
+              "title": "Compania"
+            },
+            "beneficiario_id": {
+              "type": "integer",
+              "title": "Beneficiario Id"
+            },
+            "monto_cubierto": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Monto Cubierto"
+            },
+            "moneda": {
+              "type": "string",
+              "title": "Moneda",
+              "default": "ARS"
+            },
+            "articulo_ids": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array",
+              "title": "Articulo Ids"
+            }
+          },
+          "type": "object",
+          "required": [
+            "nro_poliza",
+            "compania",
+            "beneficiario_id",
+            "monto_cubierto",
+            "articulo_ids"
+          ],
+          "title": "SeguroCreate"
+        },
+        "SeguroOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "nro_poliza": {
+              "type": "string",
+              "title": "Nro Poliza"
+            },
+            "compania": {
+              "type": "string",
+              "title": "Compania"
+            },
+            "beneficiario_id": {
+              "type": "integer",
+              "title": "Beneficiario Id"
+            },
+            "monto_cubierto": {
+              "type": "string",
+              "title": "Monto Cubierto"
+            },
+            "moneda": {
+              "type": "string",
+              "title": "Moneda"
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "nro_poliza",
+            "compania",
+            "beneficiario_id",
+            "monto_cubierto",
+            "moneda"
+          ],
+          "title": "SeguroOut"
+        },
+        "SolicitudCreate": {
+          "properties": {
+            "descripcion": {
+              "type": "string",
+              "title": "Descripcion"
+            },
+            "datos_historicos": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Datos Historicos"
+            },
+            "declara_propiedad": {
+              "type": "boolean",
+              "title": "Declara Propiedad"
+            },
+            "origen_licito_acreditado": {
+              "type": "boolean",
+              "title": "Origen Licito Acreditado",
+              "default": false
+            },
+            "acepta_devolucion_con_cargo": {
+              "type": "boolean",
+              "title": "Acepta Devolucion Con Cargo"
+            },
+            "imagenes": {
+              "items": {
+                "$ref": "#/components/schemas/ImagenSolicitudCreate"
+              },
+              "type": "array",
+              "minItems": 0,
+              "title": "Imagenes"
+            }
+          },
+          "type": "object",
+          "required": [
+            "descripcion",
+            "declara_propiedad",
+            "acepta_devolucion_con_cargo"
+          ],
+          "title": "SolicitudCreate"
+        },
+        "SolicitudOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "usuario_id": {
+              "type": "integer",
+              "title": "Usuario Id"
+            },
+            "descripcion": {
+              "type": "string",
+              "title": "Descripcion"
+            },
+            "datos_historicos": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Datos Historicos"
+            },
+            "declara_propiedad": {
+              "type": "boolean",
+              "title": "Declara Propiedad"
+            },
+            "origen_licito_acreditado": {
+              "type": "boolean",
+              "title": "Origen Licito Acreditado"
+            },
+            "acepta_devolucion_con_cargo": {
+              "type": "boolean",
+              "title": "Acepta Devolucion Con Cargo"
+            },
+            "estado": {
+              "$ref": "#/components/schemas/EstadoSolicitud"
+            },
+            "motivo_rechazo": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Motivo Rechazo"
+            },
+            "precio_base_propuesto": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Precio Base Propuesto"
+            },
+            "comision_propuesta": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Comision Propuesta"
+            },
+            "fecha_subasta_propuesta": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fecha Subasta Propuesta"
+            },
+            "fecha": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Fecha"
+            },
+            "imagenes": {
+              "items": {
+                "$ref": "#/components/schemas/ImagenSolicitudOut"
+              },
+              "type": "array",
+              "title": "Imagenes",
+              "default": []
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "usuario_id",
+            "descripcion",
+            "declara_propiedad",
+            "origen_licito_acreditado",
+            "acepta_devolucion_con_cargo",
+            "estado",
+            "fecha"
+          ],
+          "title": "SolicitudOut"
+        },
+        "SolicitudResolucion": {
+          "properties": {
+            "estado": {
+              "$ref": "#/components/schemas/EstadoSolicitud"
+            },
+            "motivo_rechazo": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Motivo Rechazo"
+            },
+            "precio_base_propuesto": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Precio Base Propuesto"
+            },
+            "comision_propuesta": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Comision Propuesta"
+            },
+            "fecha_subasta_propuesta": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fecha Subasta Propuesta"
+            }
+          },
+          "type": "object",
+          "required": [
+            "estado"
+          ],
+          "title": "SolicitudResolucion"
+        },
+        "SubastaCambioEstado": {
+          "properties": {
+            "estado": {
+              "$ref": "#/components/schemas/EstadoSubasta"
+            }
+          },
+          "type": "object",
+          "required": [
+            "estado"
+          ],
+          "title": "SubastaCambioEstado"
+        },
+        "SubastaCreate": {
+          "properties": {
+            "nombre": {
+              "type": "string",
+              "title": "Nombre"
+            },
+            "fecha_hora": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Fecha Hora"
+            },
+            "ubicacion": {
+              "type": "string",
+              "title": "Ubicacion"
+            },
+            "categoria_minima": {
+              "$ref": "#/components/schemas/CategoriaUsuario",
+              "default": "comun"
+            },
+            "moneda": {
+              "$ref": "#/components/schemas/Moneda",
+              "default": "ARS"
+            },
+            "rematador_id": {
+              "type": "integer",
+              "title": "Rematador Id"
+            },
+            "es_coleccion": {
+              "type": "boolean",
+              "title": "Es Coleccion",
+              "default": false
+            },
+            "nombre_coleccion": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Nombre Coleccion"
+            }
+          },
+          "type": "object",
+          "required": [
+            "nombre",
+            "fecha_hora",
+            "ubicacion",
+            "rematador_id"
+          ],
+          "title": "SubastaCreate"
+        },
+        "SubastaOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "nombre": {
+              "type": "string",
+              "title": "Nombre"
+            },
+            "fecha_hora": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Fecha Hora"
+            },
+            "ubicacion": {
+              "type": "string",
+              "title": "Ubicacion"
+            },
+            "categoria_minima": {
+              "$ref": "#/components/schemas/CategoriaUsuario"
+            },
+            "moneda": {
+              "$ref": "#/components/schemas/Moneda"
+            },
+            "estado": {
+              "$ref": "#/components/schemas/EstadoSubasta"
+            },
+            "rematador_id": {
+              "type": "integer",
+              "title": "Rematador Id"
+            },
+            "es_coleccion": {
+              "type": "boolean",
+              "title": "Es Coleccion"
+            },
+            "nombre_coleccion": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Nombre Coleccion"
+            },
+            "catalogo": {
+              "items": {
+                "$ref": "#/components/schemas/CatalogoItemOut"
+              },
+              "type": "array",
+              "title": "Catalogo",
+              "default": []
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "nombre",
+            "fecha_hora",
+            "ubicacion",
+            "categoria_minima",
+            "moneda",
+            "estado",
+            "rematador_id",
+            "es_coleccion"
+          ],
+          "title": "SubastaOut"
+        },
+        "SubastaPublicaOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "nombre": {
+              "type": "string",
+              "title": "Nombre"
+            },
+            "fecha_hora": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Fecha Hora"
+            },
+            "ubicacion": {
+              "type": "string",
+              "title": "Ubicacion"
+            },
+            "categoria_minima": {
+              "$ref": "#/components/schemas/CategoriaUsuario"
+            },
+            "moneda": {
+              "$ref": "#/components/schemas/Moneda"
+            },
+            "estado": {
+              "$ref": "#/components/schemas/EstadoSubasta"
+            },
+            "catalogo": {
+              "items": {
+                "$ref": "#/components/schemas/CatalogoPublicoItem"
+              },
+              "type": "array",
+              "title": "Catalogo",
+              "default": []
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "nombre",
+            "fecha_hora",
+            "ubicacion",
+            "categoria_minima",
+            "moneda",
+            "estado"
+          ],
+          "title": "SubastaPublicaOut"
+        },
+        "TipoMedioPago": {
+          "type": "string",
+          "enum": [
+            "cuenta_bancaria",
+            "tarjeta_credito",
+            "cheque_certificado"
+          ],
+          "title": "TipoMedioPago"
+        },
+        "UsuarioAprobacion": {
+          "properties": {
+            "categoria": {
+              "$ref": "#/components/schemas/CategoriaUsuario"
+            }
+          },
+          "type": "object",
+          "required": [
+            "categoria"
+          ],
+          "title": "UsuarioAprobacion"
+        },
+        "UsuarioOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "nombre": {
+              "type": "string",
+              "title": "Nombre"
+            },
+            "apellido": {
+              "type": "string",
+              "title": "Apellido"
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "title": "Email"
+            },
+            "domicilio": {
+              "type": "string",
+              "title": "Domicilio"
+            },
+            "pais": {
+              "type": "string",
+              "title": "Pais"
+            },
+            "categoria": {
+              "$ref": "#/components/schemas/CategoriaUsuario"
+            },
+            "estado_registro": {
+              "$ref": "#/components/schemas/EstadoRegistro"
+            },
+            "bloqueado_por_impago": {
+              "type": "boolean",
+              "title": "Bloqueado Por Impago"
+            },
+            "fecha_alta": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Fecha Alta"
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "nombre",
+            "apellido",
+            "email",
+            "domicilio",
+            "pais",
+            "categoria",
+            "estado_registro",
+            "bloqueado_por_impago",
+            "fecha_alta"
+          ],
+          "title": "UsuarioOut"
+        },
+        "UsuarioRegistroEtapa1": {
+          "properties": {
+            "nombre": {
+              "type": "string",
+              "maxLength": 80,
+              "title": "Nombre"
+            },
+            "apellido": {
+              "type": "string",
+              "maxLength": 80,
+              "title": "Apellido"
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "title": "Email"
+            },
+            "doc_frente_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Doc Frente Url"
+            },
+            "doc_dorso_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Doc Dorso Url"
+            },
+            "domicilio": {
+              "type": "string",
+              "title": "Domicilio"
+            },
+            "pais": {
+              "type": "string",
+              "title": "Pais"
+            }
+          },
+          "type": "object",
+          "required": [
+            "nombre",
+            "apellido",
+            "email",
+            "domicilio",
+            "pais"
+          ],
+          "title": "UsuarioRegistroEtapa1"
+        },
+        "UsuarioRegistroEtapa2": {
+          "properties": {
+            "password": {
+              "type": "string",
+              "minLength": 8,
+              "title": "Password"
+            }
+          },
+          "type": "object",
+          "required": [
+            "password"
+          ],
+          "title": "UsuarioRegistroEtapa2",
+          "description": "El postor ingresa la app y genera su clave personal."
+        },
+        "ValidationError": {
+          "properties": {
+            "loc": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ]
+              },
+              "type": "array",
+              "title": "Location"
+            },
+            "msg": {
+              "type": "string",
+              "title": "Message"
+            },
+            "type": {
+              "type": "string",
+              "title": "Error Type"
+            }
+          },
+          "type": "object",
+          "required": [
+            "loc",
+            "msg",
+            "type"
+          ],
+          "title": "ValidationError"
+        },
+        "VentaOut": {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "title": "Id"
+            },
+            "catalogo_item_id": {
+              "type": "integer",
+              "title": "Catalogo Item Id"
+            },
+            "comprador_id": {
+              "type": "integer",
+              "title": "Comprador Id"
+            },
+            "medio_pago_id": {
+              "type": "integer",
+              "title": "Medio Pago Id"
+            },
+            "monto_final": {
+              "type": "string",
+              "title": "Monto Final"
+            },
+            "comision": {
+              "type": "string",
+              "title": "Comision"
+            },
+            "costo_envio": {
+              "type": "string",
+              "title": "Costo Envio"
+            },
+            "retira_personalmente": {
+              "type": "boolean",
+              "title": "Retira Personalmente"
+            },
+            "moneda": {
+              "type": "string",
+              "title": "Moneda"
+            },
+            "fecha": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Fecha"
+            },
+            "pagada": {
+              "type": "boolean",
+              "title": "Pagada"
+            }
+          },
+          "type": "object",
+          "required": [
+            "id",
+            "catalogo_item_id",
+            "comprador_id",
+            "medio_pago_id",
+            "monto_final",
+            "comision",
+            "costo_envio",
+            "retira_personalmente",
+            "moneda",
+            "fecha",
+            "pagada"
+          ],
+          "title": "VentaOut"
+        }
+      }
+    }
+  }
