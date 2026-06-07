@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import Base, engine
@@ -13,6 +16,7 @@ from app.routers import (
     rematadores,
     solicitudes,
     subastas,
+    uploads,
     usuarios,
     ventas,
     ws,
@@ -65,4 +69,10 @@ app.include_router(multas.router)
 app.include_router(solicitudes.router)
 app.include_router(metricas.router)
 app.include_router(notificaciones.router)
+app.include_router(uploads.router)
 app.include_router(ws.router)
+
+# Storage local de imágenes subidas (DNI, fotos de artículos/solicitudes).
+_MEDIA_DIR = Path("media")
+_MEDIA_DIR.mkdir(exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(_MEDIA_DIR)), name="media")

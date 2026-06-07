@@ -1,9 +1,11 @@
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import { PRODUCT_CATEGORIES } from '@/api/categories';
+import { pickAndUploadAsync } from '@/api/upload';
 import { useCrearSolicitud } from '@/api/hooks/useSolicitudes';
 import type { SolicitudCreate } from '@/api/types';
 import { ScreenHeader } from '@/components/screen-header';
@@ -17,11 +19,8 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useSession } from '@/context/session';
 
-// NOTE: the backend SolicitudCreate takes image URLs only — there is NO file
-// upload endpoint. The "Agregar fotos" picker therefore cannot upload device
-// images; instead it appends a placeholder URL per tap so the request still
-// carries imagenes. Swap this for a real uploader if/when the backend gains one.
-const PLACEHOLDER_IMAGE = 'https://placehold.co/600x400?text=Producto';
+// Las fotos se eligen de la galería y se suben al storage local del backend
+// (POST /uploads), que devuelve la URL guardada en la solicitud.
 const MIN_IMAGES = 6; // el enunciado exige al menos 6 fotos del bien
 const MAX_IMAGES = 8;
 
@@ -36,6 +35,7 @@ export default function UploadProductScreen() {
   const [declaraPropiedad, setDeclaraPropiedad] = useState(false);
   const [aceptaDevolucion, setAceptaDevolucion] = useState(false);
   const [origenLicito, setOrigenLicito] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -51,8 +51,18 @@ export default function UploadProductScreen() {
     );
   }
 
-  const addPhoto = () => {
-    setImages((prev) => (prev.length >= MAX_IMAGES ? prev : [...prev, PLACEHOLDER_IMAGE]));
+  const addPhoto = async () => {
+    if (images.length >= MAX_IMAGES || uploading) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const url = await pickAndUploadAsync();
+      if (url) setImages((prev) => [...prev, url]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo subir la imagen.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const canSubmit = declaraPropiedad && aceptaDevolucion && images.length >= MIN_IMAGES;
@@ -88,21 +98,41 @@ export default function UploadProductScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <Pressable
           onPress={addPhoto}
+          disabled={uploading || images.length >= MAX_IMAGES}
           style={[styles.upload, { borderColor: theme.borderStrong, backgroundColor: theme.card }]}>
           <View style={[styles.uploadIcon, { backgroundColor: theme.primaryGlow }]}>
-            <Icon name="camera-outline" size={28} color={theme.primary} />
+            <Icon name={uploading ? 'cloud-upload-outline' : 'camera-outline'} size={28} color={theme.primary} />
           </View>
           <ThemedText type="smallBold">
-            {images.length ? `${images.length} de ${MAX_IMAGES} fotos` : 'Agregar fotos'}
+            {uploading
+              ? 'Subiendo…'
+              : images.length
+                ? `${images.length} de ${MAX_IMAGES} fotos`
+                : 'Agregar fotos'}
           </ThemedText>
           <ThemedText
             type="caption"
             style={{ color: images.length < MIN_IMAGES ? theme.warning : theme.textSecondary }}>
             {images.length < MIN_IMAGES
               ? `Mínimo ${MIN_IMAGES} fotos (faltan ${MIN_IMAGES - images.length})`
-              : 'Se adjunta una imagen de muestra (sin carga de archivos)'}
+              : 'Tocá para agregar más'}
           </ThemedText>
         </Pressable>
+
+        {images.length ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbs}>
+            {images.map((uri, i) => (
+              <View key={`${uri}-${i}`}>
+                <Image source={{ uri }} style={styles.thumb} contentFit="cover" />
+                <Pressable
+                  onPress={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
+                  style={[styles.thumbRemove, { backgroundColor: theme.danger }]}>
+                  <Icon name="close" size={12} color="#FFFFFF" />
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+        ) : null}
 
         <Input label="Título" placeholder="Nombre del producto" value={form.title} onChangeText={set('title')} />
 
@@ -239,6 +269,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.one,
+  },
+  thumbs: { gap: Spacing.two, paddingVertical: Spacing.one },
+  thumb: { width: 72, height: 72, borderRadius: Radius.sm, backgroundColor: '#0E121A' },
+  thumbRemove: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   section: { gap: Spacing.three },
   cats: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },

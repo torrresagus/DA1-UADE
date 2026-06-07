@@ -37,6 +37,12 @@
             "imageWidth": 140
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Bidify necesita acceder a tus fotos para subir tu DNI y las imágenes de tus productos."
+        }
       ]
     ],
     "experiments": {

@@ -1,8 +1,10 @@
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
+import { pickAndUploadAsync } from '@/api/upload';
 import { ScreenHeader } from '@/components/screen-header';
 import { RegisterSteps } from '@/components/register-steps';
 import { ThemedText } from '@/components/themed-text';
@@ -13,13 +15,6 @@ import { Screen } from '@/components/ui/screen';
 import { Radius, Spacing } from '@/constants/theme';
 import { useRegistration } from '@/context/registration';
 import { useTheme } from '@/hooks/use-theme';
-
-// The backend stores document images as URLs and there is no file-upload
-// endpoint (same as upload-product). Tapping a DNI slot therefore stamps a
-// placeholder URL so the request carries the field; swap for a real uploader
-// (expo-image-picker + upload) if/when the backend gains one.
-const DNI_FRENTE_URL = 'https://placehold.co/600x400?text=DNI+Frente';
-const DNI_DORSO_URL = 'https://placehold.co/600x400?text=DNI+Dorso';
 
 const PAISES = [
   'Argentina',
@@ -51,8 +46,8 @@ export default function RegisterAccountScreen() {
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
   const [pais, setPais] = useState('');
   const [paisOpen, setPaisOpen] = useState(false);
-  const [dniFrente, setDniFrente] = useState(false);
-  const [dniDorso, setDniDorso] = useState(false);
+  const [dniFrente, setDniFrente] = useState<string | null>(null);
+  const [dniDorso, setDniDorso] = useState<string | null>(null);
   const [validacion, setValidacion] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,8 +58,8 @@ export default function RegisterAccountScreen() {
     form.email.trim().length > 0 &&
     form.domicilio.trim().length > 0 &&
     pais.length > 0 &&
-    dniFrente &&
-    dniDorso &&
+    !!dniFrente &&
+    !!dniDorso &&
     validacion &&
     !isSubmitting;
 
@@ -79,8 +74,8 @@ export default function RegisterAccountScreen() {
         email: form.email.trim(),
         domicilio: form.domicilio.trim(),
         pais,
-        docFrenteUrl: dniFrente ? DNI_FRENTE_URL : null,
-        docDorsoUrl: dniDorso ? DNI_DORSO_URL : null,
+        docFrenteUrl: dniFrente,
+        docDorsoUrl: dniDorso,
       });
       router.push('/(auth)/register-finish');
     } catch (e) {
@@ -123,8 +118,8 @@ export default function RegisterAccountScreen() {
             Foto DNI
           </ThemedText>
           <View style={styles.row}>
-            <DniSlot label="FRENTE" filled={dniFrente} onPress={() => setDniFrente((v) => !v)} />
-            <DniSlot label="DORSO" filled={dniDorso} onPress={() => setDniDorso((v) => !v)} />
+            <DniSlot label="FRENTE" uri={dniFrente} onPicked={setDniFrente} onError={setError} />
+            <DniSlot label="DORSO" uri={dniDorso} onPicked={setDniDorso} onError={setError} />
           </View>
         </View>
 
@@ -243,17 +238,34 @@ export default function RegisterAccountScreen() {
 
 function DniSlot({
   label,
-  filled,
-  onPress,
+  uri,
+  onPicked,
+  onError,
 }: {
   label: string;
-  filled: boolean;
-  onPress: () => void;
+  uri: string | null;
+  onPicked: (url: string) => void;
+  onError: (msg: string) => void;
 }) {
   const theme = useTheme();
+  const [loading, setLoading] = useState(false);
+  const filled = !!uri;
+
+  const pick = async () => {
+    setLoading(true);
+    try {
+      const url = await pickAndUploadAsync();
+      if (url) onPicked(url);
+    } catch (e) {
+      onError(e instanceof Error ? e.message : 'No se pudo subir la imagen.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={loading ? undefined : pick}
       style={[
         styles.dni,
         {
@@ -261,13 +273,16 @@ function DniSlot({
           backgroundColor: filled ? theme.primaryGlow : theme.card,
         },
       ]}>
+      {filled ? (
+        <Image source={{ uri }} style={styles.dniImage} contentFit="cover" />
+      ) : null}
       <Icon
-        name={filled ? 'checkmark-circle' : 'camera-outline'}
+        name={filled ? 'checkmark-circle' : loading ? 'cloud-upload-outline' : 'camera-outline'}
         size={26}
         color={filled ? theme.primary : theme.textSecondary}
       />
       <ThemedText type="smallBold" themeColor={filled ? 'text' : 'textSecondary'}>
-        {filled ? 'CARGADO' : label}
+        {loading ? 'SUBIENDO…' : filled ? 'CARGADO' : label}
       </ThemedText>
     </Pressable>
   );
@@ -290,7 +305,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.two,
+    overflow: 'hidden',
   },
+  dniImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.35 },
   select: {
     flexDirection: 'row',
     alignItems: 'center',
