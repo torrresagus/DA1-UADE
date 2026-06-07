@@ -1,8 +1,10 @@
 # Sistema de Subastas — API (UADE DA1 1C 2026)
 
 API REST del proyecto de **Desarrollo de Aplicaciones I**. Cubre la registración
-de postores, catálogo de bienes, subastas dinámicas ascendentes, pujas, ventas,
-multas por impago, solicitudes de incorporación de bienes, seguros y depósitos.
+de postores en dos etapas, catálogo de bienes, subastas dinámicas ascendentes,
+pujas **en tiempo real (WebSocket)**, ventas, multas por impago, solicitudes de
+incorporación de bienes, seguros y depósitos, métricas, **notificaciones**,
+**recategorización automática** y **subida de imágenes** a storage local.
 
 > Nota: el enunciado menciona que la app consume tablas del sistema interno de
 > la empresa. Como ese sistema no existe, en este proyecto se **recrean** todas
@@ -12,11 +14,12 @@ multas por impago, solicitudes de incorporación de bienes, seguros y depósitos
 ## Stack
 
 - Python 3.11+
-- FastAPI + Uvicorn
+- FastAPI + Uvicorn (incluye **WebSocket** para pujas en vivo)
 - Pydantic v2 + pydantic-settings
 - SQLAlchemy 2.0
 - Alembic (migraciones)
 - SQLite por defecto (sin configuración adicional)
+- Storage local de imágenes en `./media`, servido como estáticos en `/media`
 
 ## Puesta en marcha
 
@@ -48,6 +51,16 @@ uvicorn app.main:app --reload
 Abrir **Swagger UI**: <http://127.0.0.1:8000/docs>
 Abrir **ReDoc**: <http://127.0.0.1:8000/redoc>
 
+### Especificación OpenAPI
+
+El contrato completo está versionado en **[`app/openapi.json`](app/openapi.json)**
+(OpenAPI 3.1, 50+ endpoints). Para regenerarlo tras cambiar la API:
+
+```bash
+python -c "import json; from app.main import app; \
+  json.dump(app.openapi(), open('app/openapi.json','w'), ensure_ascii=False, indent=2)"
+```
+
 ## Endpoints principales
 
 | Recurso            | Prefijo                         |
@@ -64,9 +77,12 @@ Abrir **ReDoc**: <http://127.0.0.1:8000/redoc>
 | Multas             | `/multas`                       |
 | Solicitudes        | `/solicitudes`                  |
 | Métricas           | `/metricas`                     |
+| Notificaciones     | `/usuarios/{id}/notificaciones` |
+| Subida de imágenes | `/uploads` (estáticos en `/media`) |
+| Subasta en vivo    | `WS /ws/subastas/{id}`          |
 
 Todos los endpoints documentan parámetros, body, **códigos HTTP** (200, 201,
-204, 400, 403, 404, 409) y ejemplos en Swagger.
+204, 400, 403, 404, 409, 413, 422) y ejemplos en Swagger.
 
 ## Reglas de negocio implementadas
 
@@ -79,11 +95,26 @@ Todos los endpoints documentan parámetros, body, **códigos HTTP** (200, 201,
   (excepto subastas **oro** y **platino**, sin tope).
 - Si el usuario tiene **cheque certificado**, sus compras no pueden superar el
   monto garantizado.
-- Impago: genera multa del 10% del valor ofertado y **bloquea** al usuario
-  hasta regularizar.
+- Impago: genera multa del 10% del valor ofertado, fija **vencimiento a 72hs** y
+  **bloquea** al usuario hasta regularizar; vencida e impaga se **deriva a la
+  justicia** y se bloquean los servicios.
 - Solicitudes de incorporación: requieren declaración de propiedad y aceptación
-  de devolución con cargo.
-- Seguro: sólo cubre piezas de un mismo dueño (beneficiario único).
+  de devolución con cargo; ≥ 6 imágenes; la empresa resuelve (acepta/rechaza con
+  causas) y el **usuario acepta o rechaza** el valor base y las comisiones.
+- Si nadie puja, la **empresa compra** el ítem al valor base al cerrar.
+- **Retiro personal** del bien adquirido: anula la cobertura del seguro.
+- Seguro: sólo cubre piezas de un mismo dueño (beneficiario único); el dueño
+  puede **aumentar la cobertura** pagando la diferencia.
+- **Recategorización automática**: la diversidad de medios de pago verificados y
+  la actividad (ventas pagadas) mejoran la categoría del usuario.
+- Subastas en **pesos o dólares** (no bimonetarias); una venta en USD requiere un
+  medio de pago en USD.
+- **Tiempo real**: las pujas se difunden por WebSocket a los conectados; un
+  usuario no puede estar conectado a **más de una subasta a la vez**.
+- **Notificaciones** privadas al usuario: importe a pagar (puja + comisiones +
+  envío), multas y resolución de solicitudes.
+- **Imágenes** (DNI y fotos de bienes): se suben con `POST /uploads` y se guardan
+  en el storage local, sirviéndose desde `/media/...`.
 
 ## Flujo de usuario (Bidify) — mapeo pantallas ↔ endpoints
 
@@ -96,7 +127,7 @@ endpoints que cada pantalla consume.
 |---|----------------------|-----------------------------------------------------------|
 | 1 | Splash Screen        | —                                                         |
 | 2 | Onboarding           | —                                                         |
-| 3 | Login                | *(pendiente: `POST /auth/login` — próxima entrega)*       |
+| 3 | Login                | `GET /usuarios` *(identidad por email; sin auth con token)* |
 
 ### 2. Registro y verificación
 
@@ -112,7 +143,7 @@ endpoints que cada pantalla consume.
 |---|---------------------------|---------------------------------------------------------------------------|
 | 6 | Home / Subastas Activas   | `GET /subastas/publicas` (sin categoría), `GET /subastas?estado=abierta` |
 | 7 | Detalle de Subasta        | `GET /subastas/{id}` + `GET /subastas/{id}/catalogo`                      |
-| 8 | Sala de Subasta en Vivo   | `GET /pujas/item/{id}/mejor` (polling) + `POST /pujas`                    |
+| 8 | Sala de Subasta en Vivo   | `WS /ws/subastas/{id}` (tiempo real) + `GET /pujas/item/{id}/mejor` + `POST /pujas` |
 
 ### 4. Transacción y resultados
 
@@ -136,11 +167,13 @@ endpoints que cada pantalla consume.
 
 | #  | Pantalla              | Endpoints                                                      |
 |----|-----------------------|----------------------------------------------------------------|
-| 15 | Carga de Producto     | `POST /solicitudes/{usuario_id}` (con imágenes y declaraciones)|
-| 16 | Estado del Producto   | `GET /solicitudes/{id}` + `POST /solicitudes/{id}/resolver`    |
-| 17 | Notificaciones        | *(pendiente: `GET /notificaciones` — próxima entrega)*         |
+| 15 | Carga de Producto     | `POST /uploads` (fotos) + `POST /solicitudes/{usuario_id}` (con imágenes y declaraciones) |
+| 16 | Estado del Producto   | `GET /solicitudes/{id}` + `POST /solicitudes/{id}/resolver` + `POST /solicitudes/{id}/responder` |
+| 17 | Notificaciones        | `GET /usuarios/{id}/notificaciones` + `POST /notificaciones/{id}/leer` |
+| 18 | Seguros y Depósitos   | `GET /seguros?beneficiario_id={id}` + `GET /depositos/{id}` + `POST /seguros/{id}/aumentar` |
 
-> Los botones **+1% / +5% / +10%** de la Sala en Vivo (Pantalla 8) se validan
+> La Sala en Vivo (Pantalla 8) abre un **WebSocket** a `/ws/subastas/{id}`: cada
+> puja se difunde a los conectados en tiempo real. El monto sugerido se valida
 > contra `GET /pujas/item/{id}/mejor`, que devuelve `minimo_proxima` y
 > `maximo_proxima` para no romper las reglas de rango del dominio.
 
@@ -148,13 +181,20 @@ endpoints que cada pantalla consume.
 
 ```
 app/
-  main.py            # FastAPI app + montaje de routers
-  config.py          # Settings (pydantic-settings)
-  database.py        # engine + SessionLocal + Base
-  models/            # SQLAlchemy 2.0 (Mapped/mapped_column)
-  schemas/           # Pydantic v2
-  routers/           # Endpoints por recurso
-  services/pujas.py  # Reglas de pujas
-alembic/             # Migraciones
-seed.py              # Datos de demo
+  main.py               # FastAPI app + routers + StaticFiles (/media)
+  config.py             # Settings (pydantic-settings)
+  database.py           # engine + SessionLocal + Base
+  openapi.json          # Especificación OpenAPI 3.1 versionada
+  models/               # SQLAlchemy 2.0 (Mapped/mapped_column)
+  schemas/              # Pydantic v2
+  routers/              # Endpoints por recurso (+ ws.py, uploads.py, notificaciones.py)
+  services/
+    pujas.py            # Reglas de pujas + lock de concurrencia
+    realtime.py         # ConnectionManager WebSocket (tiempo real + sesión única)
+    categorias.py       # Recategorización automática
+media/                  # Storage local de imágenes subidas (gitignored)
+alembic/                # Migraciones
+seed.py                 # Datos de demo
+scripts_smoke/          # smoke.py + circuito.py (verificación end-to-end)
+frontend/               # App móvil Expo (React Native) — ver frontend/README.md
 ```
