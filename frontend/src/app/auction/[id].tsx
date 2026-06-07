@@ -1,9 +1,10 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, useWindowDimensions, ScrollView, View } from 'react-native';
 
 import { useAuctionDetail } from '@/api/hooks/useAuctions';
+import { useMediosPago } from '@/api/hooks/useMediosPago';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +26,11 @@ export default function AuctionDetailScreen() {
     catalogoItemId,
     usuario?.categoria,
   );
+  const { data: medios } = useMediosPago(usuario?.id ?? null);
+  const hasVerifiedMedio = !!medios?.some((m) => m.verificado);
+  const { width } = useWindowDimensions();
   const [favorite, setFavorite] = useState(false);
+  const [heroIndex, setHeroIndex] = useState(0);
 
   if (isLoading) {
     return (
@@ -67,7 +72,39 @@ export default function AuctionDetailScreen() {
             onRightPress={() => setFavorite((f) => !f)}
           />
         </View>
-        <Image source={{ uri: vm.images[0] }} style={styles.hero} contentFit="cover" />
+        {vm.images.length > 1 ? (
+          <View>
+            <FlatList
+              data={vm.images}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(_, i) => String(i)}
+              onMomentumScrollEnd={(e) =>
+                setHeroIndex(Math.round(e.nativeEvent.contentOffset.x / width))
+              }
+              renderItem={({ item }) => (
+                <Image source={{ uri: item }} style={[styles.hero, { width }]} contentFit="cover" />
+              )}
+            />
+            <View style={styles.dots}>
+              {vm.images.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.dot,
+                    {
+                      backgroundColor: i === heroIndex ? theme.primary : 'rgba(255,255,255,0.45)',
+                      width: i === heroIndex ? 20 : 6,
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
+        ) : (
+          <Image source={{ uri: vm.images[0] }} style={styles.hero} contentFit="cover" />
+        )}
 
         <View style={styles.body}>
           <View style={styles.titleRow}>
@@ -143,11 +180,20 @@ export default function AuctionDetailScreen() {
             </ThemedText>
           </>
         ) : isLive ? (
-          <Button
-            title="Entrar a la sala en vivo"
-            fullWidth
-            onPress={() => router.push(`/live/${catalogoItemId}`)}
-          />
+          <>
+            <Button
+              title="Entrar a la sala en vivo"
+              fullWidth
+              onPress={() => router.push(`/live/${catalogoItemId}`)}
+            />
+            {!hasVerifiedMedio ? (
+              <ThemedText
+                type="caption"
+                style={[styles.lockNote, { color: theme.warning }]}>
+                Necesitás un medio de pago verificado para pujar. Podés entrar a ver la subasta.
+              </ThemedText>
+            ) : null}
+          </>
         ) : (
           <>
             <Button
@@ -185,6 +231,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
   },
   hero: { width: '100%', height: 320, backgroundColor: '#0E121A' },
+  dots: {
+    position: 'absolute',
+    bottom: Spacing.three,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: Spacing.one,
+  },
+  dot: { height: 6, borderRadius: 3 },
   body: { padding: Spacing.four, gap: Spacing.four },
   titleRow: { flexDirection: 'row', gap: Spacing.two },
   bidCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },

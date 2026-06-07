@@ -38,4 +38,7 @@ export const queryKeys = {
   solicitud: (id: number) => ['solicitud', id] as const,
   metricasUsuario: (usuarioId: number) => ['metricas-usuario', usuarioId] as const,
   metricasSubasta: (subastaId: number) => ['metricas-subasta', subastaId] as const,
+  seguros: (beneficiarioId: number) => ['seguros', beneficiarioId] as const,
+  deposito: (id: number) => ['deposito', id] as const,
+  notificaciones: (usuarioId: number) => ['notificaciones', usuarioId] as const,
 };

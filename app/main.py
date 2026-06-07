@@ -8,12 +8,14 @@ from app.routers import (
     medios_pago,
     metricas,
     multas,
+    notificaciones,
     pujas,
     rematadores,
     solicitudes,
     subastas,
     usuarios,
     ventas,
+    ws,
 )
 
 # Importante para que SQLAlchemy registre todos los modelos antes de crear las tablas.
@@ -62,3 +64,5 @@ app.include_router(ventas.router)
 app.include_router(multas.router)
 app.include_router(solicitudes.router)
 app.include_router(metricas.router)
+app.include_router(notificaciones.router)
+app.include_router(ws.router)

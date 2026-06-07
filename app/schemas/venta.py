@@ -21,7 +21,7 @@ class VentaOut(ORMBase):
     id: int
     catalogo_item_id: int
     comprador_id: int
-    medio_pago_id: int
+    medio_pago_id: int | None
     monto_final: Decimal
     comision: Decimal
     costo_envio: Decimal

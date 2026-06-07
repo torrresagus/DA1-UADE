@@ -36,8 +36,10 @@ class EstadoSubasta(str, enum.Enum):
 class EstadoSolicitud(str, enum.Enum):
     INGRESADA = "ingresada"
     EN_INSPECCION = "en_inspeccion"
-    ACEPTADA = "aceptada"
-    RECHAZADA = "rechazada"
+    ACEPTADA = "aceptada"  # la empresa aceptó e informó precio base + comisiones
+    RECHAZADA = "rechazada"  # la empresa rechazó tras la inspección
+    CONFIRMADA_POR_USUARIO = "confirmada_por_usuario"  # el usuario aceptó las condiciones
+    RECHAZADA_POR_USUARIO = "rechazada_por_usuario"  # el usuario no aceptó valor/comisiones
     DEVUELTA = "devuelta"
 
 

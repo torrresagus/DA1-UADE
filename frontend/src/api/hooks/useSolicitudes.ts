@@ -47,6 +47,16 @@ export function useSolicitud(solicitudId: number | null) {
  * The list endpoint is not user-scoped, so we fetch all solicitudes and filter
  * client-side by `usuario_id`. Disabled until `usuarioId` is valid.
  */
+export function useResponderSolicitud(solicitudId: number) {
+  return useMutation<SolicitudOut, Error, boolean>({
+    mutationFn: (acepta: boolean) => solicitudesApi.responderSolicitud(solicitudId, acepta),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.solicitud(solicitudId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.solicitudes() });
+    },
+  });
+}
+
 export function useMisSolicitudes(usuarioId: number | null) {
   return useQuery<SolicitudOut[]>({
     queryKey: queryKeys.solicitudes(),

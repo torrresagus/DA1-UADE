@@ -103,6 +103,28 @@ function MetricsContent({
           </View>
         ))}
       </Card>
+
+      {m.por_categoria && m.por_categoria.length > 0 ? (
+        <Card style={styles.summaryCard}>
+          <ThemedText type="heading">Por categoría de subasta</ThemedText>
+          {m.por_categoria.map((c) => (
+            <View key={c.categoria} style={styles.catRow}>
+              <ThemedText type="smallBold" style={styles.catName}>
+                {c.categoria}
+              </ThemedText>
+              <View style={styles.catStats}>
+                <ThemedText type="caption" themeColor="textSecondary">
+                  {c.cantidad_pujas} pujas · {c.subastas_ganadas} ganadas
+                </ThemedText>
+                <ThemedText type="small">
+                  Ofertado ${num(c.importe_ofertado).toLocaleString('en-US')} · Pagado $
+                  {num(c.importe_pagado).toLocaleString('en-US')}
+                </ThemedText>
+              </View>
+            </View>
+          ))}
+        </Card>
+      ) : null}
     </>
   );
 }
@@ -129,4 +151,7 @@ const styles = StyleSheet.create({
   },
   summaryLabel: { flex: 1 },
   summaryValue: { fontWeight: '600' },
+  catRow: { gap: Spacing.one },
+  catName: { textTransform: 'capitalize' },
+  catStats: { gap: 2 },
 });

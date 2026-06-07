@@ -9,10 +9,16 @@
 - Usuario no puede estar bloqueado por impago ni tener multas impagas.
 - Si tiene cheque certificado, la suma de sus compras no puede superar su garantía.
 """
+import threading
 from decimal import Decimal
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+
+# Serializa el read-validate-write de la mejor oferta para que dos pujas
+# simultáneas no queden ambas como ganadoras. (SQLite no soporta SELECT FOR
+# UPDATE; en Postgres se usaría un lock de fila.) Las pujas se confirman de a una.
+_puja_lock = threading.Lock()
 
 from app.models import (
     CATEGORIA_RANK,
@@ -125,25 +131,28 @@ def validar_y_registrar_puja(
         if Decimal(gastado) + Decimal(monto) > Decimal(cheque.monto_garantia):
             raise PujaInvalida("La puja supera el monto garantizado por el cheque certificado")
 
-    ultima = mejor_puja(db, catalogo_item_id)
-    minimo, maximo = rango_valido(
-        item.precio_base,
-        ultima.monto if ultima else None,
-        subasta.categoria_minima,
-    )
-    if Decimal(monto) < minimo:
-        raise PujaInvalida(f"La puja debe ser al menos {minimo}")
-    if maximo is not None and Decimal(monto) > maximo:
-        raise PujaInvalida(f"La puja no puede superar {maximo}")
+    # Sección crítica: leer la mejor oferta, validar el rango y registrar la puja
+    # de forma atómica. Hasta que ésta se confirma no se admite otra.
+    with _puja_lock:
+        ultima = mejor_puja(db, catalogo_item_id)
+        minimo, maximo = rango_valido(
+            item.precio_base,
+            ultima.monto if ultima else None,
+            subasta.categoria_minima,
+        )
+        if Decimal(monto) < minimo:
+            raise PujaInvalida(f"La puja debe ser al menos {minimo}")
+        if maximo is not None and Decimal(monto) > maximo:
+            raise PujaInvalida(f"La puja no puede superar {maximo}")
 
-    puja = Puja(
-        subasta_id=item.subasta_id,
-        catalogo_item_id=catalogo_item_id,
-        usuario_id=usuario_id,
-        monto=Decimal(monto),
-        estado=EstadoPuja.CONFIRMADA,
-    )
-    db.add(puja)
-    db.commit()
-    db.refresh(puja)
+        puja = Puja(
+            subasta_id=item.subasta_id,
+            catalogo_item_id=catalogo_item_id,
+            usuario_id=usuario_id,
+            monto=Decimal(monto),
+            estado=EstadoPuja.CONFIRMADA,
+        )
+        db.add(puja)
+        db.commit()
+        db.refresh(puja)
     return puja

@@ -19,6 +19,7 @@ const ROWS: Row[] = [
   { icon: 'time-outline', label: 'Historial', href: '/history' },
   { icon: 'cloud-upload-outline', label: 'Cargar producto', href: '/upload-product' },
   { icon: 'cube-outline', label: 'Mis productos', href: '/product-status' },
+  { icon: 'shield-checkmark-outline', label: 'Seguros y depósitos', href: '/seguros' },
   { icon: 'notifications-outline', label: 'Notificaciones', href: '/notifications' },
   { icon: 'settings-outline', label: 'Ajustes' },
 ];

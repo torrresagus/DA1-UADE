@@ -24,7 +24,8 @@ class SolicitudCreate(BaseModel):
     declara_propiedad: bool
     origen_licito_acreditado: bool = False
     acepta_devolucion_con_cargo: bool
-    imagenes: list[ImagenSolicitudCreate] = Field(default_factory=list, min_length=0)
+    # El enunciado exige fotos del bien (al menos 6).
+    imagenes: list[ImagenSolicitudCreate] = Field(..., min_length=6)
 
 
 class SolicitudResolucion(BaseModel):
@@ -35,6 +36,10 @@ class SolicitudResolucion(BaseModel):
     fecha_subasta_propuesta: datetime | None = None
 
 
+class SolicitudRespuestaUsuario(BaseModel):
+    acepta: bool
+
+
 class SolicitudOut(ORMBase):
     id: int
     usuario_id: int
@@ -42,11 +47,13 @@ class SolicitudOut(ORMBase):
     datos_historicos: str | None = None
     declara_propiedad: bool
     origen_licito_acreditado: bool
+    revisar_origen: bool = False
     acepta_devolucion_con_cargo: bool
     estado: EstadoSolicitud
     motivo_rechazo: str | None = None
     precio_base_propuesto: Decimal | None = None
     comision_propuesta: Decimal | None = None
     fecha_subasta_propuesta: datetime | None = None
+    respuesta_usuario: bool | None = None
     fecha: datetime
     imagenes: list[ImagenSolicitudOut] = []

@@ -3,11 +3,14 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Articulo, Deposito, ImagenArticulo, Seguro
+from decimal import Decimal
+
 from app.schemas.articulo import (
     ArticuloCreate,
     ArticuloOut,
     DepositoCreate,
     DepositoOut,
+    SeguroAumentar,
     SeguroCreate,
     SeguroOut,
 )
@@ -72,6 +75,14 @@ def listar_depositos(db: Session = Depends(get_db)):
     return db.query(Deposito).all()
 
 
+@depositos_router.get("/{deposito_id}", response_model=DepositoOut)
+def obtener_deposito(deposito_id: int, db: Session = Depends(get_db)):
+    d = db.get(Deposito, deposito_id)
+    if d is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Depósito no encontrado")
+    return d
+
+
 seguros_router = APIRouter(prefix="/seguros", tags=["Seguros"])
 
 
@@ -99,5 +110,38 @@ def crear_seguro(payload: SeguroCreate, db: Session = Depends(get_db)):
 
 
 @seguros_router.get("", response_model=list[SeguroOut])
-def listar_seguros(db: Session = Depends(get_db)):
-    return db.query(Seguro).all()
+def listar_seguros(beneficiario_id: int | None = None, db: Session = Depends(get_db)):
+    q = db.query(Seguro)
+    if beneficiario_id is not None:
+        q = q.filter(Seguro.beneficiario_id == beneficiario_id)
+    return q.all()
+
+
+@seguros_router.get("/{seguro_id}", response_model=SeguroOut)
+def obtener_seguro(seguro_id: int, db: Session = Depends(get_db)):
+    s = db.get(Seguro, seguro_id)
+    if s is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Seguro no encontrado")
+    return s
+
+
+@seguros_router.post(
+    "/{seguro_id}/aumentar",
+    response_model=SeguroOut,
+    summary="Aumentar el valor de la póliza pagando la diferencia del premio",
+)
+def aumentar_seguro(seguro_id: int, payload: SeguroAumentar, db: Session = Depends(get_db)):
+    s = db.get(Seguro, seguro_id)
+    if s is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Seguro no encontrado")
+    if not s.vigente:
+        raise HTTPException(status.HTTP_409_CONFLICT, "La póliza no está vigente")
+    if Decimal(payload.nuevo_monto) <= Decimal(s.monto_cubierto):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "El nuevo monto debe ser mayor al monto cubierto actual",
+        )
+    s.monto_cubierto = Decimal(payload.nuevo_monto)
+    db.commit()
+    db.refresh(s)
+    return s

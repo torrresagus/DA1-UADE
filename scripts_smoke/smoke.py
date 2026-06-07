@@ -113,16 +113,29 @@ call("GET", f"/multas/usuario/{uid}", expect=200)
 call("GET", "/solicitudes", expect=200)
 call("GET", "/ventas", expect=200)
 
-print("\nsolicitud create (cargar producto)")
+print("\nsolicitud create (cargar producto, >=6 fotos)")
+seis = [{"url": f"https://placehold.co/600x400?text={i}", "orden": i} for i in range(1, 7)]
+# menos de 6 fotos -> 422 (validación del enunciado)
+call("POST", f"/solicitudes/{uid}", {
+    "descripcion": "Pocas fotos", "declara_propiedad": True,
+    "origen_licito_acreditado": True, "acepta_devolucion_con_cargo": True,
+    "imagenes": seis[:2],
+}, expect=422)
 st, sol = call("POST", f"/solicitudes/{uid}", {
     "descripcion": "Reloj de prueba — smoke",
     "declara_propiedad": True,
     "origen_licito_acreditado": True,
     "acepta_devolucion_con_cargo": True,
-    "imagenes": [{"url": "https://placehold.co/600x400?text=Producto", "orden": 1}],
+    "imagenes": seis,
 }, expect=201)
 if isinstance(sol, dict) and sol.get("id"):
     call("GET", f"/solicitudes/{sol['id']}", expect=200)
+
+print("\nnuevos endpoints (enunciado completo)")
+call("GET", f"/metricas/usuario/{uid}/por-categoria", expect=200)
+call("GET", f"/usuarios/{uid}/notificaciones", expect=200)
+call("GET", f"/seguros?beneficiario_id={uid}", expect=200)
+call("POST", f"/usuarios/{uid}/recategorizar", expect=200)
 
 passed = sum(1 for r in results if r)
 print(f"\n== {passed}/{len(results)} assertions passed ==")

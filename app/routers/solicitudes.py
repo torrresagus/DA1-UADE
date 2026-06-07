@@ -3,7 +3,13 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import EstadoSolicitud, ImagenSolicitud, SolicitudSubasta, Usuario
-from app.schemas.solicitud import SolicitudCreate, SolicitudOut, SolicitudResolucion
+from app.routers.notificaciones import crear_notificacion
+from app.schemas.solicitud import (
+    SolicitudCreate,
+    SolicitudOut,
+    SolicitudResolucion,
+    SolicitudRespuestaUsuario,
+)
 
 router = APIRouter(prefix="/solicitudes", tags=["Solicitudes de subasta"])
 
@@ -32,6 +38,8 @@ def crear_solicitud(
     data = payload.model_dump()
     imagenes = data.pop("imagenes", [])
     sol = SolicitudSubasta(usuario_id=usuario_id, **data)
+    # Si no se acreditó el origen lícito, marcar para revisión/aviso a autoridades.
+    sol.revisar_origen = not payload.origen_licito_acreditado
     for img in imagenes:
         sol.imagenes.append(ImagenSolicitud(**img))
     db.add(sol)
@@ -78,6 +86,53 @@ def resolver_solicitud(
         s.comision_propuesta = payload.comision_propuesta
     if payload.fecha_subasta_propuesta is not None:
         s.fecha_subasta_propuesta = payload.fecha_subasta_propuesta
+    # Avisar al usuario la resolución (aceptada con condiciones, o rechazada con causas).
+    if s.estado == EstadoSolicitud.ACEPTADA:
+        crear_notificacion(
+            db,
+            usuario_id=s.usuario_id,
+            tipo="solicitud",
+            titulo="Tu bien fue aceptado",
+            cuerpo=(
+                f"Valor base propuesto: {s.precio_base_propuesto}, "
+                f"comisión: {s.comision_propuesta}. Ingresá para aceptar o rechazar."
+            ),
+        )
+    elif s.estado == EstadoSolicitud.RECHAZADA:
+        crear_notificacion(
+            db,
+            usuario_id=s.usuario_id,
+            tipo="solicitud",
+            titulo="Tu bien fue rechazado",
+            cuerpo=f"Motivo: {s.motivo_rechazo or 'sin especificar'}. El bien se devuelve con cargo.",
+        )
+    db.commit()
+    db.refresh(s)
+    return s
+
+
+@router.post(
+    "/{solicitud_id}/responder",
+    response_model=SolicitudOut,
+    summary="El usuario acepta o rechaza el valor base y las comisiones propuestas",
+)
+def responder_solicitud(
+    solicitud_id: int, payload: SolicitudRespuestaUsuario, db: Session = Depends(get_db)
+):
+    s = db.get(SolicitudSubasta, solicitud_id)
+    if s is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Solicitud no encontrada")
+    if s.estado != EstadoSolicitud.ACEPTADA:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Solo se puede responder una solicitud aceptada por la empresa",
+        )
+    s.respuesta_usuario = payload.acepta
+    if payload.acepta:
+        s.estado = EstadoSolicitud.CONFIRMADA_POR_USUARIO
+    else:
+        # No acepta valor/comisiones: se procede a la devolución informando gastos.
+        s.estado = EstadoSolicitud.RECHAZADA_POR_USUARIO
     db.commit()
     db.refresh(s)
     return s

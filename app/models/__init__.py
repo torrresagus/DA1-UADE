@@ -19,6 +19,7 @@ from app.models.puja import Puja
 from app.models.venta import Venta
 from app.models.multa import Multa
 from app.models.solicitud import SolicitudSubasta, ImagenSolicitud
+from app.models.notificacion import Notificacion
 
 __all__ = [
     "CATEGORIA_RANK",
@@ -46,4 +47,5 @@ __all__ = [
     "Multa",
     "SolicitudSubasta",
     "ImagenSolicitud",
+    "Notificacion",
 ]

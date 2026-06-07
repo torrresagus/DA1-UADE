@@ -2,8 +2,9 @@ import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { useMisSolicitudes, useSolicitud } from '@/api/hooks/useSolicitudes';
+import { useMisSolicitudes, useResponderSolicitud, useSolicitud } from '@/api/hooks/useSolicitudes';
 import type { EstadoSolicitud, SolicitudOut } from '@/api/types';
+import { num } from '@/api/types';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
@@ -39,7 +40,10 @@ function progressIndex(estado: EstadoSolicitud): number {
     case 'aceptada':
     case 'rechazada':
     case 'devuelta':
+    case 'rechazada_por_usuario':
       return 2;
+    case 'confirmada_por_usuario':
+      return 3;
     default:
       return 0;
   }
@@ -50,6 +54,8 @@ const BADGE: Record<EstadoSolicitud, { label: string; tone: BadgeTone }> = {
   en_inspeccion: { label: 'En inspección', tone: 'gold' },
   aceptada: { label: 'Aceptada', tone: 'success' },
   rechazada: { label: 'Rechazada', tone: 'danger' },
+  confirmada_por_usuario: { label: 'Confirmada', tone: 'success' },
+  rechazada_por_usuario: { label: 'Rechazada por vos', tone: 'neutral' },
   devuelta: { label: 'Devuelta', tone: 'neutral' },
 };
 
@@ -148,6 +154,7 @@ function SolicitudList({ query }: { query: ReturnType<typeof useMisSolicitudes> 
 
 function StatusBody({ solicitud }: { solicitud: SolicitudOut }) {
   const theme = useTheme();
+  const responder = useResponderSolicitud(solicitud.id);
 
   const title = (solicitud.descripcion ?? '').slice(0, 60) || 'Sin descripción';
   const imageUri = solicitud.imagenes[0]?.url ?? PLACEHOLDER_IMAGE;
@@ -156,6 +163,64 @@ function StatusBody({ solicitud }: { solicitud: SolicitudOut }) {
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      {solicitud.estado === 'aceptada' ? (
+        <Card elevated style={styles.proposal}>
+          <ThemedText type="heading">La empresa aceptó tu bien</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Revisá las condiciones propuestas y confirmá si estás de acuerdo.
+          </ThemedText>
+          <View style={styles.proposalRow}>
+            <ThemedText type="small" themeColor="textSecondary">
+              Valor base
+            </ThemedText>
+            <ThemedText type="smallBold">
+              {solicitud.precio_base_propuesto != null
+                ? `$${num(solicitud.precio_base_propuesto).toLocaleString('en-US')}`
+                : '—'}
+            </ThemedText>
+          </View>
+          <View style={styles.proposalRow}>
+            <ThemedText type="small" themeColor="textSecondary">
+              Comisión
+            </ThemedText>
+            <ThemedText type="smallBold">
+              {solicitud.comision_propuesta != null
+                ? `$${num(solicitud.comision_propuesta).toLocaleString('en-US')}`
+                : '—'}
+            </ThemedText>
+          </View>
+          <View style={styles.proposalRow}>
+            <ThemedText type="small" themeColor="textSecondary">
+              Fecha de subasta
+            </ThemedText>
+            <ThemedText type="smallBold">{shortDate(solicitud.fecha_subasta_propuesta)}</ThemedText>
+          </View>
+          {responder.isError ? (
+            <ThemedText type="caption" style={{ color: theme.danger }}>
+              No se pudo registrar tu respuesta. Probá de nuevo.
+            </ThemedText>
+          ) : null}
+          <View style={styles.proposalActions}>
+            <Button
+              title="Aceptar"
+              fullWidth
+              loading={responder.isPending}
+              onPress={() => responder.mutate(true)}
+            />
+            <Button
+              title="Rechazar"
+              variant="ghost"
+              fullWidth
+              disabled={responder.isPending}
+              onPress={() => responder.mutate(false)}
+            />
+          </View>
+          <ThemedText type="caption" themeColor="textMuted">
+            Si rechazás, se procede a la devolución del bien informando los gastos.
+          </ThemedText>
+        </Card>
+      ) : null}
+
       <Card elevated style={styles.product}>
         <Image source={{ uri: imageUri }} style={styles.thumb} />
         <View style={styles.flex}>
@@ -256,4 +321,7 @@ const styles = StyleSheet.create({
   cta: { marginBottom: Spacing.four },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   listThumb: { width: 48, height: 48, borderRadius: Radius.sm, backgroundColor: '#0E121A' },
+  proposal: { gap: Spacing.three },
+  proposalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  proposalActions: { gap: Spacing.two, marginTop: Spacing.two },
 });

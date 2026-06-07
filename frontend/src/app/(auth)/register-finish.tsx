@@ -2,39 +2,41 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { ApiError } from '@/api/client';
+import { RegisterSteps } from '@/components/register-steps';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Screen } from '@/components/ui/screen';
-import { ApiError } from '@/api/client';
-import { PRODUCT_CATEGORIES } from '@/api/categories';
-import { Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useRegistration } from '@/context/registration';
 import { useSession } from '@/context/session';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function RegisterFinishScreen() {
   const theme = useTheme();
-  const { finish, clear } = useRegistration();
+  const { draft, finish, clear } = useRegistration();
   const { adoptUser } = useSession();
-  // Phone + interests are local-only: the backend has no field for them.
-  const [phone, setPhone] = useState('');
-  const [selected, setSelected] = useState<string[]>([]);
+  // Etapa-2: the bidder sets their personal password after the external
+  // verification of etapa-1 (per the enunciado).
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [secure, setSecure] = useState(true);
   const [accepted, setAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const toggle = (i: string) =>
-    setSelected((s) => (s.includes(i) ? s.filter((x) => x !== i) : [...s, i]));
+  const passwordsMatch = password.length > 0 && password === confirm;
+  const canSubmit = password.length >= 8 && passwordsMatch && accepted && !isSubmitting;
 
   const onFinish = async () => {
-    if (!accepted || isSubmitting) return;
+    if (!canSubmit) return;
     setError(null);
     setIsSubmitting(true);
     try {
-      const user = await finish();
+      const user = await finish(password);
       await adoptUser(user);
       clear();
       router.replace('/(tabs)/home');
@@ -55,54 +57,53 @@ export default function RegisterFinishScreen() {
 
   return (
     <Screen padded>
-      <ScreenHeader />
+      <ScreenHeader title="CREAR CUENTA" rightIcon="notifications-outline" />
+      <RegisterSteps current={3} />
+
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.head}>
-          <ThemedText type="caption" themeColor="textSecondary">
-            Paso 2 de 2
-          </ThemedText>
-          <ThemedText type="title">Casi listo</ThemedText>
+          <ThemedText type="title">Generá tu clave personal</ThemedText>
           <ThemedText type="default" themeColor="textSecondary">
-            Personaliza tu experiencia.
+            {draft
+              ? `${draft.nombre}, tu identidad fue verificada. Definí la contraseña para acceder a tu cuenta.`
+              : 'Definí la contraseña para acceder a tu cuenta.'}
           </ThemedText>
         </View>
 
-        <Input
-          label="Teléfono"
-          placeholder="+54 11 ..."
-          keyboardType="phone-pad"
-          value={phone}
-          onChangeText={setPhone}
-          leading={<Icon name="call-outline" size={18} color={theme.textSecondary} />}
-        />
-
-        <View style={styles.section}>
-          <ThemedText type="caption" themeColor="textSecondary">
-            Categorías de interés
-          </ThemedText>
-          <View style={styles.interests}>
-            {PRODUCT_CATEGORIES.map((i) => {
-              const active = selected.includes(i);
-              return (
-                <Pressable
-                  key={i}
-                  onPress={() => toggle(i)}
-                  style={[
-                    styles.interest,
-                    {
-                      backgroundColor: active ? theme.primary : theme.cardElevated,
-                      borderColor: active ? theme.primary : theme.border,
-                    },
-                  ]}>
-                  <ThemedText
-                    type="smallBold"
-                    style={{ color: active ? theme.onPrimary : theme.textSecondary }}>
-                    {i}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
+        <View style={styles.form}>
+          <Input
+            label="Contraseña"
+            placeholder="Mínimo 8 caracteres"
+            secureTextEntry={secure}
+            value={password}
+            onChangeText={(v) => {
+              setPassword(v);
+              if (error) setError(null);
+            }}
+            leading={<Icon name="lock-closed-outline" size={18} color={theme.textSecondary} />}
+            trailing={
+              <Pressable onPress={() => setSecure((s) => !s)}>
+                <Icon
+                  name={secure ? 'eye-outline' : 'eye-off-outline'}
+                  size={18}
+                  color={theme.textSecondary}
+                />
+              </Pressable>
+            }
+          />
+          <Input
+            label="Confirmar contraseña"
+            placeholder="Repetí tu contraseña"
+            secureTextEntry={secure}
+            value={confirm}
+            onChangeText={setConfirm}
+            leading={<Icon name="lock-closed-outline" size={18} color={theme.textSecondary} />}
+          />
+          {confirm.length > 0 && !passwordsMatch ? (
+            <ThemedText type="small" style={{ color: theme.danger }}>
+              Las contraseñas no coinciden.
+            </ThemedText>
+          ) : null}
         </View>
 
         <Pressable style={styles.terms} onPress={() => setAccepted((a) => !a)}>
@@ -129,9 +130,9 @@ export default function RegisterFinishScreen() {
       </ScrollView>
 
       <Button
-        title={isSubmitting ? 'Finalizando…' : 'Finalizar registro'}
+        title={isSubmitting ? 'Finalizando…' : 'FINALIZAR REGISTRO'}
         fullWidth
-        disabled={!accepted || isSubmitting}
+        disabled={!canSubmit}
         style={styles.cta}
         onPress={onFinish}
       />
@@ -141,16 +142,9 @@ export default function RegisterFinishScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { gap: Spacing.five, paddingTop: Spacing.four, paddingBottom: Spacing.six },
+  content: { gap: Spacing.five, paddingTop: Spacing.five, paddingBottom: Spacing.six },
   head: { gap: Spacing.two },
-  section: { gap: Spacing.three },
-  interests: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  interest: {
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Radius.pill,
-    borderWidth: 1,
-  },
+  form: { gap: Spacing.four },
   terms: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   checkbox: {
     width: 22,

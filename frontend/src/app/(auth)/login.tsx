@@ -20,6 +20,7 @@ export default function LoginScreen() {
   // email only. We still require it non-empty in the form for UX parity.
   const [password, setPassword] = useState('');
   const [secure, setSecure] = useState(true);
+  const [remember, setRemember] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,16 +51,27 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}>
           <View style={styles.brand}>
             <BidifyMark size={88} />
-            <ThemedText type="title">Bienvenido de Nuevo</ThemedText>
+            <ThemedText type="title" style={styles.wordmark}>
+              BIDIFY
+            </ThemedText>
+            <ThemedText type="caption" themeColor="textSecondary" style={styles.tagline}>
+              ELITE ASSET TRADING PLATFORM
+            </ThemedText>
+          </View>
+
+          <View style={styles.headline}>
+            <ThemedText type="heading" style={styles.center}>
+              Bienvenido de Nuevo
+            </ThemedText>
             <ThemedText type="default" themeColor="textSecondary" style={styles.center}>
-              Inicia sesión para seguir pujando
+              Acceda a su cartera de activos premium
             </ThemedText>
           </View>
 
           <View style={styles.form}>
             <Input
-              label="Email"
-              placeholder="tu@email.com"
+              label="CORREO ELECTRÓNICO"
+              placeholder="nombre@luxe.com"
               autoCapitalize="none"
               keyboardType="email-address"
               value={email}
@@ -70,7 +82,7 @@ export default function LoginScreen() {
               leading={<Icon name="mail-outline" size={18} color={theme.textSecondary} />}
             />
             <Input
-              label="Contraseña"
+              label="CONTRASEÑA"
               placeholder="••••••••"
               secureTextEntry={secure}
               value={password}
@@ -89,11 +101,28 @@ export default function LoginScreen() {
                 </Pressable>
               }
             />
-            <Pressable style={styles.forgot}>
-              <ThemedText type="link" style={{ color: theme.primary }}>
-                ¿Olvidaste tu contraseña?
-              </ThemedText>
-            </Pressable>
+            <View style={styles.metaRow}>
+              <Pressable style={styles.remember} onPress={() => setRemember((r) => !r)}>
+                <View
+                  style={[
+                    styles.checkbox,
+                    {
+                      backgroundColor: remember ? theme.primary : 'transparent',
+                      borderColor: remember ? theme.primary : theme.borderStrong,
+                    },
+                  ]}>
+                  {remember ? <Icon name="checkmark" size={12} color={theme.onPrimary} /> : null}
+                </View>
+                <ThemedText type="small" themeColor="textSecondary">
+                  Recordarme
+                </ThemedText>
+              </Pressable>
+              <Pressable>
+                <ThemedText type="link" style={{ color: theme.primary }}>
+                  ¿Olvidaste tu contraseña?
+                </ThemedText>
+              </Pressable>
+            </View>
 
             {error ? (
               <ThemedText type="small" style={{ color: theme.danger }}>
@@ -102,7 +131,7 @@ export default function LoginScreen() {
             ) : null}
 
             <Button
-              title={isSubmitting ? 'Ingresando…' : 'Iniciar sesión'}
+              title={isSubmitting ? 'Ingresando…' : 'INICIAR SESIÓN'}
               fullWidth
               disabled={!canSubmit}
               onPress={onLogin}
@@ -111,11 +140,11 @@ export default function LoginScreen() {
 
           <View style={styles.footer}>
             <ThemedText type="small" themeColor="textSecondary">
-              ¿No tienes cuenta?
+              ¿No tiene una cuenta de inversor?
             </ThemedText>
             <Pressable onPress={() => router.push('/(auth)/register-account')}>
               <ThemedText type="link" style={{ color: theme.primary }}>
-                Crear cuenta
+                Solicitar Registro
               </ThemedText>
             </Pressable>
           </View>
@@ -127,10 +156,22 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { flexGrow: 1, justifyContent: 'center', gap: Spacing.six, paddingVertical: Spacing.six },
-  brand: { alignItems: 'center', gap: Spacing.three },
+  content: { flexGrow: 1, justifyContent: 'center', gap: Spacing.five, paddingVertical: Spacing.six },
+  brand: { alignItems: 'center', gap: Spacing.two },
+  wordmark: { letterSpacing: 3 },
+  tagline: { letterSpacing: 2 },
+  headline: { gap: Spacing.one },
   center: { textAlign: 'center' },
   form: { gap: Spacing.four },
-  forgot: { alignSelf: 'flex-end' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  remember: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   footer: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.two },
 });

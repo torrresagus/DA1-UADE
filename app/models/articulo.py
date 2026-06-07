@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Numeric, String, Table, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, Numeric, String, Table, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -74,5 +74,11 @@ class Seguro(Base):
     monto_cubierto: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     moneda: Mapped[str] = mapped_column(String(3), default="ARS")
     vigente_desde: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # El retiro personal del bien hace perder la cobertura del seguro.
+    vigente: Mapped[bool] = mapped_column(Boolean, default=True)
 
     articulos = relationship("Articulo", secondary=seguros_articulos, back_populates="seguros")
+
+    @property
+    def articulo_ids(self) -> list[int]:
+        return [a.id for a in self.articulos]

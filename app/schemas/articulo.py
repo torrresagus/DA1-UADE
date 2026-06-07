@@ -27,7 +27,8 @@ class ArticuloCreate(BaseModel):
     fecha_obra: str | None = None
     historia: str | None = None
     cantidad_elementos: int = 1
-    imagenes: list[ImagenArticuloCreate] = Field(default_factory=list)
+    # El enunciado exige una serie de imágenes del bien (aproximadamente 6).
+    imagenes: list[ImagenArticuloCreate] = Field(..., min_length=6)
 
 
 class ArticuloOut(ORMBase):
@@ -68,6 +69,10 @@ class SeguroCreate(BaseModel):
     articulo_ids: list[int]
 
 
+class SeguroAumentar(BaseModel):
+    nuevo_monto: Decimal
+
+
 class SeguroOut(ORMBase):
     id: int
     nro_poliza: str
@@ -75,3 +80,5 @@ class SeguroOut(ORMBase):
     beneficiario_id: int
     monto_cubierto: Decimal
     moneda: str
+    vigente: bool = True
+    articulo_ids: list[int] = []

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import EstadoMedioPago, MedioPago, Usuario
 from app.schemas.medio_pago import MedioPagoCreate, MedioPagoOut, MedioPagoVerificar
+from app.services.categorias import recalcular_categoria
 
 router = APIRouter(prefix="/usuarios/{usuario_id}/medios-pago", tags=["Medios de pago"])
 
@@ -45,6 +46,11 @@ def verificar_medio_pago(
     mp.verificado = payload.verificado
     mp.estado = EstadoMedioPago.VERIFICADO if payload.verificado else EstadoMedioPago.RECHAZADO
     db.commit()
+    # La diversidad de medios verificados puede mejorar la categoría del usuario.
+    if payload.verificado:
+        usuario = db.get(Usuario, usuario_id)
+        if usuario:
+            recalcular_categoria(db, usuario)
     db.refresh(mp)
     return mp
 

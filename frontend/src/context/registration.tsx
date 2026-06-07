@@ -19,7 +19,6 @@ const AUTO_APPROVE = process.env.EXPO_PUBLIC_AUTO_APPROVE !== 'false';
 
 export type RegistrationDraft = {
   usuarioId: number;
-  password: string;
   nombre: string;
   apellido: string;
   email: string;
@@ -29,15 +28,18 @@ export type Step1Input = {
   nombre: string;
   apellido: string;
   email: string;
-  password: string;
   domicilio: string;
   pais: string;
+  docFrenteUrl?: string | null;
+  docDorsoUrl?: string | null;
 };
 
 type RegistrationValue = {
   draft: RegistrationDraft;
   submitStep1: (input: Step1Input) => Promise<UsuarioOut>;
-  finish: () => Promise<UsuarioOut>;
+  // The personal password is generated in etapa-2 (per the enunciado), so it is
+  // collected on the finish screen and passed in here — not stored in the draft.
+  finish: (password: string) => Promise<UsuarioOut>;
   clear: () => void;
 };
 
@@ -53,10 +55,11 @@ export function RegistrationProvider({ children }: { children: React.ReactNode }
       email: input.email,
       domicilio: input.domicilio,
       pais: input.pais,
+      doc_frente_url: input.docFrenteUrl ?? null,
+      doc_dorso_url: input.docDorsoUrl ?? null,
     });
     setDraft({
       usuarioId: user.id,
-      password: input.password,
       nombre: input.nombre,
       apellido: input.apellido,
       email: input.email,
@@ -64,20 +67,23 @@ export function RegistrationProvider({ children }: { children: React.ReactNode }
     return user;
   }, []);
 
-  const finish = useCallback(async () => {
-    if (!draft) throw new Error('No hay un registro en curso.');
-    try {
-      return await registroEtapa2(draft.usuarioId, { password: draft.password });
-    } catch (e) {
-      const is409 = e instanceof ApiError && e.status === 409;
-      if (is409 && AUTO_APPROVE) {
-        // Dev shim: perform the manual company approval, then retry etapa-2.
-        await aprobacion(draft.usuarioId, { categoria: 'comun' });
-        return await registroEtapa2(draft.usuarioId, { password: draft.password });
+  const finish = useCallback(
+    async (password: string) => {
+      if (!draft) throw new Error('No hay un registro en curso.');
+      try {
+        return await registroEtapa2(draft.usuarioId, { password });
+      } catch (e) {
+        const is409 = e instanceof ApiError && e.status === 409;
+        if (is409 && AUTO_APPROVE) {
+          // Dev shim: perform the manual company approval, then retry etapa-2.
+          await aprobacion(draft.usuarioId, { categoria: 'comun' });
+          return await registroEtapa2(draft.usuarioId, { password });
+        }
+        throw e;
       }
-      throw e;
-    }
-  }, [draft]);
+    },
+    [draft],
+  );
 
   const clear = useCallback(() => setDraft(null), []);
 

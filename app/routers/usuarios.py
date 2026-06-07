@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import CuentaCobro, EstadoRegistro, Usuario
+from app.services.categorias import recalcular_categoria
 from app.schemas.usuario import (
     CuentaCobroCreate,
     CuentaCobroOut,
@@ -66,6 +67,20 @@ def registrar_etapa_2(
     usuario.password_hash = f"hashed:{payload.password}"
     usuario.estado_registro = EstadoRegistro.COMPLETO
     db.commit()
+    db.refresh(usuario)
+    return usuario
+
+
+@router.post(
+    "/{usuario_id}/recategorizar",
+    response_model=UsuarioOut,
+    summary="Recalcula la categoría según diversidad de medios de pago y actividad",
+)
+def recategorizar_usuario(usuario_id: int, db: Session = Depends(get_db)):
+    usuario = db.get(Usuario, usuario_id)
+    if usuario is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+    recalcular_categoria(db, usuario)
     db.refresh(usuario)
     return usuario
 

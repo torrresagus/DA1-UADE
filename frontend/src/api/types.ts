@@ -27,7 +27,14 @@ export type EstadoRegistro =
   | 'bloqueado';
 
 export type EstadoSubasta = 'programada' | 'abierta' | 'cerrada' | 'cancelada';
-export type EstadoSolicitud = 'ingresada' | 'en_inspeccion' | 'aceptada' | 'rechazada' | 'devuelta';
+export type EstadoSolicitud =
+  | 'ingresada'
+  | 'en_inspeccion'
+  | 'aceptada'
+  | 'rechazada'
+  | 'confirmada_por_usuario'
+  | 'rechazada_por_usuario'
+  | 'devuelta';
 export type EstadoArticulo = 'disponible' | 'en_subasta' | 'vendido' | 'retirado';
 export type EstadoPuja = 'pendiente' | 'confirmada' | 'rechazada';
 export type Moneda = 'ARS' | 'USD';
@@ -189,6 +196,8 @@ export interface SeguroOut {
   beneficiario_id: number;
   monto_cubierto: Money;
   moneda: Moneda;
+  vigente?: boolean;
+  articulo_ids?: number[];
 }
 
 // ─── Subastas + catálogo ────────────────────────────────────────────────────
@@ -314,6 +323,8 @@ export interface MultaOut {
   motivo: string;
   pagada: boolean;
   fecha: string;
+  fecha_vencimiento?: string | null;
+  derivada_justicia?: boolean;
 }
 
 // ─── Solicitudes ────────────────────────────────────────────────────────────
@@ -344,12 +355,14 @@ export interface SolicitudOut {
   datos_historicos: string | null;
   declara_propiedad: boolean;
   origen_licito_acreditado: boolean;
+  revisar_origen?: boolean;
   acepta_devolucion_con_cargo: boolean;
   estado: EstadoSolicitud;
   motivo_rechazo: string | null;
   precio_base_propuesto: Money | null;
   comision_propuesta: Money | null;
   fecha_subasta_propuesta: string | null;
+  respuesta_usuario?: boolean | null;
   fecha: string;
   imagenes: ImagenSolicitudOut[];
 }
@@ -373,7 +386,27 @@ export interface RematadorOut extends RematadorCreate {
   id: number;
 }
 
+// ─── Notificaciones ─────────────────────────────────────────────────────────
+
+export interface NotificacionOut {
+  id: number;
+  usuario_id: number;
+  tipo: string;
+  titulo: string;
+  cuerpo: string;
+  leida: boolean;
+  fecha: string;
+}
+
 // ─── Métricas (inline dict shapes — not in OpenAPI components) ───────────────
+
+export interface MetricaPorCategoria {
+  categoria: string;
+  cantidad_pujas: number;
+  importe_ofertado: number;
+  subastas_ganadas: number;
+  importe_pagado: number;
+}
 
 export interface MetricasUsuario {
   usuario_id: number;
@@ -382,6 +415,7 @@ export interface MetricasUsuario {
   subastas_ganadas: number;
   importe_ofertado: number;
   importe_pagado: number;
+  por_categoria?: MetricaPorCategoria[];
 }
 
 export interface MetricasSubasta {

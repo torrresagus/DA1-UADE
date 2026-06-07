@@ -13,7 +13,8 @@ class Venta(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     catalogo_item_id: Mapped[int] = mapped_column(ForeignKey("catalogo_items.id"), unique=True)
     comprador_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"))
-    medio_pago_id: Mapped[int] = mapped_column(ForeignKey("medios_pago.id"))
+    # Nullable: cuando nadie puja, la empresa compra al valor base sin medio de pago.
+    medio_pago_id: Mapped[int | None] = mapped_column(ForeignKey("medios_pago.id"), default=None)
     monto_final: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     comision: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     costo_envio: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)

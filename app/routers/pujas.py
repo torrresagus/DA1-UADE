@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models import CatalogoItem, Puja, Subasta
 from app.schemas.puja import MejorOferta, PujaCreate, PujaOut
 from app.services.pujas import PujaInvalida, mejor_puja, rango_valido, validar_y_registrar_puja
+from app.services.realtime import manager
 
 router = APIRouter(prefix="/pujas", tags=["Pujas"])
 
@@ -21,7 +22,7 @@ router = APIRouter(prefix="/pujas", tags=["Pujas"])
         404: {"description": "Ítem, subasta o usuario no encontrado"},
     },
 )
-def crear_puja(payload: PujaCreate, db: Session = Depends(get_db)):
+async def crear_puja(payload: PujaCreate, db: Session = Depends(get_db)):
     try:
         puja = validar_y_registrar_puja(
             db,
@@ -31,6 +32,16 @@ def crear_puja(payload: PujaCreate, db: Session = Depends(get_db)):
         )
     except PujaInvalida as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+    # Difundir la nueva mejor oferta a los usuarios conectados a la subasta.
+    await manager.broadcast(
+        puja.subasta_id,
+        {
+            "type": "puja",
+            "catalogo_item_id": puja.catalogo_item_id,
+            "usuario_id": puja.usuario_id,
+            "monto": float(puja.monto),
+        },
+    )
     return puja
 
 

@@ -1,8 +1,10 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Multa, Usuario
+from app.models import EstadoRegistro, Multa, Usuario
 from app.schemas.multa import MultaCreate, MultaOut
 
 router = APIRouter(prefix="/multas", tags=["Multas"])
@@ -42,5 +44,31 @@ def pagar_multa(multa_id: int, db: Session = Depends(get_db)):
         if usuario:
             usuario.bloqueado_por_impago = False
             db.commit()
+    db.refresh(m)
+    return m
+
+
+@router.post(
+    "/{multa_id}/derivar-justicia",
+    response_model=MultaOut,
+    summary="Vencida e impaga: deriva el caso a la justicia y bloquea los servicios",
+)
+def derivar_justicia(multa_id: int, db: Session = Depends(get_db)):
+    m = db.get(Multa, multa_id)
+    if m is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Multa no encontrada")
+    if m.pagada:
+        raise HTTPException(status.HTTP_409_CONFLICT, "La multa ya fue pagada")
+    if m.fecha_vencimiento is not None and datetime.utcnow() < m.fecha_vencimiento:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "La multa aún no venció (plazo de 72hs)"
+        )
+    m.derivada_justicia = True
+    usuario = db.get(Usuario, m.usuario_id)
+    if usuario:
+        # Fuera del alcance de la app: pierde acceso a todos los servicios.
+        usuario.estado_registro = EstadoRegistro.BLOQUEADO
+        usuario.bloqueado_por_impago = True
+    db.commit()
     db.refresh(m)
     return m

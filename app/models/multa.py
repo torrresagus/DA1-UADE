@@ -20,5 +20,9 @@ class Multa(Base):
     motivo: Mapped[str] = mapped_column(String(250))
     pagada: Mapped[bool] = mapped_column(Boolean, default=False)
     fecha: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # El usuario tiene 72hs para presentar los fondos; vencido e impago, el caso
+    # se deriva a la justicia y queda fuera del alcance de la app.
+    fecha_vencimiento: Mapped[datetime | None] = mapped_column(DateTime, default=None)
+    derivada_justicia: Mapped[bool] = mapped_column(Boolean, default=False)
 
     usuario = relationship("Usuario", back_populates="multas")

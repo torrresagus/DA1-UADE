@@ -4,6 +4,8 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { bidderLabel } from '@/api/adapters';
 import { useAuctionDetail, useMejorOferta, usePujasItem } from '@/api/hooks/useAuctions';
+import { useLiveSubasta } from '@/api/hooks/useLiveSubasta';
+import { useMediosPago } from '@/api/hooks/useMediosPago';
 import { num } from '@/api/types';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
@@ -26,6 +28,10 @@ export default function LiveRoomScreen() {
   const mejorQuery = useMejorOferta(catalogoItemId);
   const pujasQuery = usePujasItem(catalogoItemId);
   const detailQuery = useAuctionDetail(catalogoItemId, usuario?.categoria);
+  const { data: medios } = useMediosPago(usuarioId);
+  const hasVerifiedMedio = !!medios?.some((m) => m.verificado);
+  // Real-time updates: refresh best offer + history on each broadcast bid.
+  const live = useLiveSubasta(detailQuery.data?.subastaId ?? null, usuarioId);
 
   const mejor = mejorQuery.data;
   const detail = detailQuery.data;
@@ -63,6 +69,19 @@ export default function LiveRoomScreen() {
             detailQuery.refetch();
           }}
         />
+      </Screen>
+    );
+  }
+
+  if (live.rejected) {
+    return (
+      <Screen padded>
+        <ScreenHeader title="Sala en vivo" />
+        <EmptyState
+          icon="alert-circle-outline"
+          message="Ya estás conectado a otra subasta. Salí de la otra sala para entrar acá."
+        />
+        <Button title="Volver" fullWidth onPress={() => router.back()} />
       </Screen>
     );
   }
@@ -163,7 +182,18 @@ export default function LiveRoomScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { backgroundColor: theme.card, borderTopColor: theme.border }]}>
-        {isLive ? (
+        {isLive && !hasVerifiedMedio ? (
+          <>
+            <Button
+              title="Verificá un medio de pago para pujar"
+              fullWidth
+              onPress={() => router.push('/payments')}
+            />
+            <ThemedText type="caption" style={[styles.gateNote, { color: theme.warning }]}>
+              Podés seguir la subasta, pero necesitás un medio de pago verificado para ofertar.
+            </ThemedText>
+          </>
+        ) : isLive ? (
           <Button
             title={`Pujar $${suggested.toLocaleString('en-US')}`}
             fullWidth
@@ -216,5 +246,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
   },
   rowLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  footer: { padding: Spacing.four, borderTopWidth: 1, paddingBottom: Spacing.five },
+  footer: { padding: Spacing.four, borderTopWidth: 1, paddingBottom: Spacing.five, gap: Spacing.two },
+  gateNote: { textAlign: 'center' },
 });

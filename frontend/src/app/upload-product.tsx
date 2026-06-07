@@ -22,6 +22,7 @@ import { useSession } from '@/context/session';
 // images; instead it appends a placeholder URL per tap so the request still
 // carries imagenes. Swap this for a real uploader if/when the backend gains one.
 const PLACEHOLDER_IMAGE = 'https://placehold.co/600x400?text=Producto';
+const MIN_IMAGES = 6; // el enunciado exige al menos 6 fotos del bien
 const MAX_IMAGES = 8;
 
 export default function UploadProductScreen() {
@@ -54,7 +55,7 @@ export default function UploadProductScreen() {
     setImages((prev) => (prev.length >= MAX_IMAGES ? prev : [...prev, PLACEHOLDER_IMAGE]));
   };
 
-  const canSubmit = declaraPropiedad && aceptaDevolucion;
+  const canSubmit = declaraPropiedad && aceptaDevolucion && images.length >= MIN_IMAGES;
 
   const submit = async () => {
     setError(null);
@@ -94,8 +95,12 @@ export default function UploadProductScreen() {
           <ThemedText type="smallBold">
             {images.length ? `${images.length} de ${MAX_IMAGES} fotos` : 'Agregar fotos'}
           </ThemedText>
-          <ThemedText type="caption" themeColor="textSecondary">
-            Se adjunta una imagen de muestra (sin carga de archivos)
+          <ThemedText
+            type="caption"
+            style={{ color: images.length < MIN_IMAGES ? theme.warning : theme.textSecondary }}>
+            {images.length < MIN_IMAGES
+              ? `Mínimo ${MIN_IMAGES} fotos (faltan ${MIN_IMAGES - images.length})`
+              : 'Se adjunta una imagen de muestra (sin carga de archivos)'}
           </ThemedText>
         </Pressable>
 

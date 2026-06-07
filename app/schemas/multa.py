@@ -23,3 +23,5 @@ class MultaOut(ORMBase):
     motivo: str
     pagada: bool
     fecha: datetime
+    fecha_vencimiento: datetime | None = None
+    derivada_justicia: bool = False

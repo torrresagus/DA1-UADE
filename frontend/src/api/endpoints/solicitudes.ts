@@ -37,3 +37,11 @@ export function resolverSolicitud(
 ): Promise<SolicitudOut> {
   return apiFetch<SolicitudOut>(`/solicitudes/${solicitudId}/resolver`, { method: 'POST', body });
 }
+
+/** User accepts/rejects the proposed base price and commissions. */
+export function responderSolicitud(solicitudId: number, acepta: boolean): Promise<SolicitudOut> {
+  return apiFetch<SolicitudOut>(`/solicitudes/${solicitudId}/responder`, {
+    method: 'POST',
+    body: { acepta },
+  });
+}

@@ -10,6 +10,49 @@ from app.models import CatalogoItem, Puja, Subasta, Venta
 router = APIRouter(prefix="/metricas", tags=["Métricas"])
 
 
+def _por_categoria(db: Session, usuario_id: int) -> list[dict]:
+    """Agrupa la actividad del usuario por la categoría de las subastas.
+
+    - pujas e importe ofertado: join Puja -> Subasta.categoria_minima.
+    - ganadas e importe pagado: join Venta -> CatalogoItem -> Subasta.
+    """
+    pujas_rows = (
+        db.query(
+            Subasta.categoria_minima,
+            func.count(Puja.id),
+            func.coalesce(func.sum(Puja.monto), 0),
+        )
+        .join(Puja, Puja.subasta_id == Subasta.id)
+        .filter(Puja.usuario_id == usuario_id)
+        .group_by(Subasta.categoria_minima)
+        .all()
+    )
+    ventas_rows = (
+        db.query(
+            Subasta.categoria_minima,
+            func.count(Venta.id),
+            func.coalesce(func.sum(Venta.monto_final), 0),
+        )
+        .join(CatalogoItem, CatalogoItem.id == Venta.catalogo_item_id)
+        .join(Subasta, Subasta.id == CatalogoItem.subasta_id)
+        .filter(Venta.comprador_id == usuario_id)
+        .group_by(Subasta.categoria_minima)
+        .all()
+    )
+    acc: dict[str, dict] = {}
+    for cat, cant, ofertado in pujas_rows:
+        key = cat.value if hasattr(cat, "value") else str(cat)
+        acc.setdefault(key, {"categoria": key, "cantidad_pujas": 0, "importe_ofertado": 0.0, "subastas_ganadas": 0, "importe_pagado": 0.0})
+        acc[key]["cantidad_pujas"] = int(cant)
+        acc[key]["importe_ofertado"] = float(ofertado)
+    for cat, ganadas, pagado in ventas_rows:
+        key = cat.value if hasattr(cat, "value") else str(cat)
+        acc.setdefault(key, {"categoria": key, "cantidad_pujas": 0, "importe_ofertado": 0.0, "subastas_ganadas": 0, "importe_pagado": 0.0})
+        acc[key]["subastas_ganadas"] = int(ganadas)
+        acc[key]["importe_pagado"] = float(pagado)
+    return list(acc.values())
+
+
 @router.get(
     "/usuario/{usuario_id}",
     summary="Métricas de participación del usuario",
@@ -43,7 +86,16 @@ def metricas_usuario(usuario_id: int, db: Session = Depends(get_db)):
         "subastas_ganadas": int(ganadas),
         "importe_ofertado": float(importe_ofertado),
         "importe_pagado": float(importe_pagado),
+        "por_categoria": _por_categoria(db, usuario_id),
     }
+
+
+@router.get(
+    "/usuario/{usuario_id}/por-categoria",
+    summary="Métricas del usuario desglosadas por categoría de subasta",
+)
+def metricas_usuario_por_categoria(usuario_id: int, db: Session = Depends(get_db)):
+    return {"usuario_id": usuario_id, "por_categoria": _por_categoria(db, usuario_id)}
 
 
 @router.get("/subasta/{subasta_id}", summary="Métricas generales de una subasta")
