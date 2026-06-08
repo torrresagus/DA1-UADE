@@ -42,12 +42,29 @@ def imgs(slug: str, unsplash_ids: list[str]) -> list[str]:
     return urls[:6]
 
 
+def _print_credenciales():
+    print()
+    print("=" * 52)
+    print("  USUARIOS DE PRUEBA (contraseña: demo1234)")
+    print("=" * 52)
+    print(f"  {'EMAIL':<22} {'CLAVE':<10} CATEGORÍA")
+    print("-" * 52)
+    for email, categoria in (
+        ("ana@example.com",   "PLATA"),
+        ("luis@example.com",  "ORO"),
+        ("sofia@example.com", "PLATINO"),
+    ):
+        print(f"  {email:<22} {'demo1234':<10} {categoria}")
+    print("=" * 52)
+
+
 def run():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
         if db.query(Usuario).count() > 0:
             print("La base ya tiene datos, se omite seed.")
+            _print_credenciales()
             return
 
         # ── Rematadores ──────────────────────────────────────────────────────
@@ -219,6 +236,7 @@ def run():
         db.commit()
         print("Seed OK: 2 rematadores, 3 usuarios, 7 piezas (6 fotos c/u), "
               "3 subastas, 1 seguro, 1 solicitud aceptada.")
+        _print_credenciales()
     finally:
         db.close()
 
