@@ -16,9 +16,18 @@ if errorlevel 1 (
 )
 
 REM --- Python ---
-where python >nul 2>&1
-if errorlevel 1 (
-    echo [0/4] Python no encontrado.
+REM Buscamos un Python que REALMENTE funcione. Probamos el lanzador "py"
+REM (oficial, no lo pisa el alias de la Microsoft Store) y luego "python".
+REM Usamos --version para descartar el stub falso de la Store, que figura
+REM en el PATH pero no ejecuta nada.
+set "PY="
+py -3 --version >nul 2>&1 && set "PY=py -3"
+if not defined PY (
+    python --version >nul 2>&1 && set "PY=python"
+)
+
+if not defined PY (
+    echo [0/4] Python no encontrado (o es el stub de la Microsoft Store^).
     if defined NO_WINGET (
         echo ERROR: no tenes Python ni winget. Instala Python manualmente desde:
         echo   https://www.python.org/downloads/
@@ -29,7 +38,7 @@ if errorlevel 1 (
     winget install -e --id Python.Python.3.12 --accept-source-agreements --accept-package-agreements
     set "INSTALLED_SOMETHING=1"
 ) else (
-    echo [0/4] Python ya esta instalado.
+    echo [0/4] Python ya esta instalado ^(!PY!^).
 )
 
 REM --- Node (para el frontend) ---
@@ -64,7 +73,7 @@ REM  1. Crear el entorno virtual si no existe
 REM ============================================================
 if not exist ".venv\" (
     echo [1/4] Creando entorno virtual...
-    python -m venv .venv
+    !PY! -m venv .venv
     if errorlevel 1 (
         echo ERROR: no se pudo crear el entorno virtual.
         exit /b 1
