@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useArticulo, useAumentarSeguro, useDeposito, useSeguros } from '@/api/hooks/useSeguros';
 import { num } from '@/api/types';
+import { fmtMoneyInput, fmtPrice } from '@/utils/format';
 import type { SeguroOut } from '@/api/types';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
@@ -58,7 +59,7 @@ function SeguroCard({ seguro, usuarioId }: { seguro: SeguroOut; usuarioId: numbe
   const [open, setOpen] = useState(false);
   const [monto, setMonto] = useState('');
 
-  const nuevoMonto = Number(monto);
+  const nuevoMonto = Number(monto.replace(/\./g, ''));
   const canConfirm =
     Number.isFinite(nuevoMonto) && nuevoMonto > num(seguro.monto_cubierto) && !aumentar.isPending;
 
@@ -94,7 +95,7 @@ function SeguroCard({ seguro, usuarioId }: { seguro: SeguroOut; usuarioId: numbe
           Monto cubierto
         </ThemedText>
         <ThemedText type="smallBold">
-          ${num(seguro.monto_cubierto).toLocaleString('en-US')} {seguro.moneda}
+          ${fmtPrice(num(seguro.monto_cubierto))} {seguro.moneda}
         </ThemedText>
       </View>
 
@@ -137,7 +138,7 @@ function SeguroCard({ seguro, usuarioId }: { seguro: SeguroOut; usuarioId: numbe
           <Pressable style={[styles.sheet, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <ThemedText type="heading">Aumentar cobertura</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              Cobertura actual: ${num(seguro.monto_cubierto).toLocaleString('en-US')}. Ingresá el
+              Cobertura actual: ${fmtPrice(num(seguro.monto_cubierto))}. Ingresá el
               nuevo monto (pagás la diferencia del premio).
             </ThemedText>
             <Input
@@ -145,7 +146,7 @@ function SeguroCard({ seguro, usuarioId }: { seguro: SeguroOut; usuarioId: numbe
               placeholder="0"
               keyboardType="numeric"
               value={monto}
-              onChangeText={setMonto}
+              onChangeText={(t) => setMonto(fmtMoneyInput(t))}
             />
             {aumentar.isError ? (
               <ThemedText type="caption" style={{ color: theme.danger }}>

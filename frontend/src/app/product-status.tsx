@@ -1,15 +1,19 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useMisSolicitudes, useResponderSolicitud, useSolicitud } from '@/api/hooks/useSolicitudes';
-import type { EstadoSolicitud, SolicitudOut } from '@/api/types';
+import { useDepositoInspeccion } from '@/api/hooks/useEmpresaInfo';
+import type { CategoriaUsuario, EstadoSolicitud, SolicitudOut } from '@/api/types';
 import { num } from '@/api/types';
+import { fmtPrice } from '@/utils/format';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Chip } from '@/components/ui/chip';
 import { Icon, IconName } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states';
@@ -50,13 +54,23 @@ function progressIndex(estado: EstadoSolicitud): number {
 }
 
 const BADGE: Record<EstadoSolicitud, { label: string; tone: BadgeTone }> = {
-  ingresada: { label: 'Ingresada', tone: 'neutral' },
+  ingresada: { label: 'En revisión', tone: 'neutral' },
   en_inspeccion: { label: 'En inspección', tone: 'gold' },
-  aceptada: { label: 'Aceptada', tone: 'success' },
-  rechazada: { label: 'Rechazada', tone: 'danger' },
-  confirmada_por_usuario: { label: 'Confirmada', tone: 'success' },
+  aceptada: { label: 'Propuesta recibida', tone: 'gold' },
+  rechazada: { label: 'No aceptada', tone: 'danger' },
+  confirmada_por_usuario: { label: 'Incluido en subasta', tone: 'success' },
   rechazada_por_usuario: { label: 'Rechazada por vos', tone: 'neutral' },
   devuelta: { label: 'Devuelta', tone: 'neutral' },
+};
+
+const ESTADO_DESC: Record<EstadoSolicitud, string> = {
+  ingresada: 'Tu bien está esperando ser inspeccionado',
+  en_inspeccion: 'El equipo de Bidify está revisando tu bien',
+  aceptada: 'La empresa hizo una propuesta · revisá y respondé',
+  rechazada: 'Tu bien no fue aceptado · se procede a la devolución',
+  confirmada_por_usuario: 'Tu bien ya está programado en una subasta',
+  rechazada_por_usuario: 'Rechazaste la propuesta · el bien se devuelve',
+  devuelta: 'El bien fue devuelto con los cargos correspondientes',
 };
 
 function shortDate(iso: string | null | undefined): string {
@@ -140,8 +154,8 @@ function SolicitudList({ query }: { query: ReturnType<typeof useMisSolicitudes> 
               <ThemedText type="smallBold" numberOfLines={1}>
                 {(s.descripcion ?? '').slice(0, 50) || 'Sin descripción'}
               </ThemedText>
-              <ThemedText type="caption" themeColor="textSecondary">
-                {shortDate(s.fecha)}
+              <ThemedText type="caption" themeColor="textSecondary" numberOfLines={1}>
+                {ESTADO_DESC[s.estado] ?? shortDate(s.fecha)}
               </ThemedText>
             </View>
             <Badge label={badge.label} tone={badge.tone} />
@@ -152,9 +166,20 @@ function SolicitudList({ query }: { query: ReturnType<typeof useMisSolicitudes> 
   );
 }
 
+const CATEGORIAS: { value: CategoriaUsuario; label: string }[] = [
+  { value: 'comun', label: 'General' },
+  { value: 'especial', label: 'Especial' },
+  { value: 'plata', label: 'Plata' },
+  { value: 'oro', label: 'Oro' },
+  { value: 'platino', label: 'Platino' },
+];
+
 function StatusBody({ solicitud }: { solicitud: SolicitudOut }) {
   const theme = useTheme();
   const responder = useResponderSolicitud(solicitud.id);
+  const deposito = useDepositoInspeccion();
+  const [selectedCategoria, setSelectedCategoria] = useState<CategoriaUsuario>('comun');
+  const [iniciarInmediatamente, setIniciarInmediatamente] = useState(false);
 
   const title = (solicitud.descripcion ?? '').slice(0, 60) || 'Sin descripción';
   const imageUri = solicitud.imagenes[0]?.url ?? PLACEHOLDER_IMAGE;
@@ -163,6 +188,100 @@ function StatusBody({ solicitud }: { solicitud: SolicitudOut }) {
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      {solicitud.estado === 'confirmada_por_usuario' ? (
+        <Card elevated style={styles.proposal}>
+          <View style={[styles.confirmedHeader, { borderBottomColor: theme.border }]}>
+            <Icon name="checkmark-circle" size={24} color={theme.success} />
+            <ThemedText type="heading">Incluido en subasta</ThemedText>
+          </View>
+          <ThemedText type="small" themeColor="textSecondary">
+            Aceptaste las condiciones. Tu bien fue ingresado al sistema y aparece publicado en
+            el inicio de la app.
+          </ThemedText>
+
+          <ThemedText type="smallBold" style={{ marginTop: Spacing.two }}>
+            Datos del bien
+          </ThemedText>
+          <View style={styles.proposalRow}>
+            <ThemedText type="small" themeColor="textSecondary">Número de pieza</ThemedText>
+            <ThemedText type="smallBold">{solicitud.articulo_nro_pieza ?? '—'}</ThemedText>
+          </View>
+          {solicitud.precio_base_propuesto != null ? (
+            <View style={styles.proposalRow}>
+              <ThemedText type="small" themeColor="textSecondary">Valor base</ThemedText>
+              <ThemedText type="smallBold">
+                ${fmtPrice(num(solicitud.precio_base_propuesto))}
+              </ThemedText>
+            </View>
+          ) : null}
+          <View style={styles.proposalRow}>
+            <ThemedText type="small" themeColor="textSecondary">Fecha de subasta</ThemedText>
+            <ThemedText type="smallBold">{shortDate(solicitud.fecha_subasta_propuesta)}</ThemedText>
+          </View>
+          <View style={styles.proposalRow}>
+            <ThemedText type="small" themeColor="textSecondary">Ubicación</ThemedText>
+            <ThemedText type="smallBold">{solicitud.ubicacion_subasta ?? 'Bidify - Online'}</ThemedText>
+          </View>
+
+          <ThemedText type="smallBold" style={{ marginTop: Spacing.two }}>
+            Seguro del bien
+          </ThemedText>
+          <View style={styles.proposalRow}>
+            <ThemedText type="small" themeColor="textSecondary">Póliza</ThemedText>
+            <ThemedText type="smallBold">{solicitud.nro_poliza ?? '—'}</ThemedText>
+          </View>
+          <View style={styles.proposalRow}>
+            <ThemedText type="small" themeColor="textSecondary">Compañía</ThemedText>
+            <ThemedText type="smallBold">Bidify Seguros S.A.</ThemedText>
+          </View>
+
+          <Button
+            title="Ver subastas activas"
+            variant="ghost"
+            fullWidth
+            style={{ marginTop: Spacing.two }}
+            onPress={() => router.replace('/(tabs)/home')}
+          />
+        </Card>
+      ) : null}
+
+      {solicitud.estado === 'en_inspeccion' ? (
+        <Card elevated style={styles.proposal}>
+          <View style={[styles.confirmedHeader, { borderBottomColor: theme.border }]}>
+            <Icon name="cube-outline" size={24} color={theme.primary} />
+            <ThemedText type="heading">Enviá tu bien para inspección</ThemedText>
+          </View>
+          <ThemedText type="small" themeColor="textSecondary">
+            La empresa está revisando tu solicitud. Si desean inspeccionarlo físicamente,
+            enviá el bien a la siguiente dirección:
+          </ThemedText>
+          {deposito.data ? (
+            <View style={[styles.infoSection, { backgroundColor: theme.cardElevated, borderColor: theme.border }]}>
+              <View style={styles.proposalRow}>
+                <Icon name="business-outline" size={16} color={theme.primary} />
+                <ThemedText type="smallBold" style={styles.flex}>{deposito.data.nombre}</ThemedText>
+              </View>
+              <View style={styles.proposalRow}>
+                <Icon name="location-outline" size={16} color={theme.textSecondary} />
+                <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
+                  {deposito.data.direccion}
+                </ThemedText>
+              </View>
+              <View style={styles.proposalRow}>
+                <Icon name="map-outline" size={16} color={theme.textSecondary} />
+                <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
+                  {deposito.data.ciudad}
+                </ThemedText>
+              </View>
+            </View>
+          ) : null}
+          <ThemedText type="caption" themeColor="textMuted">
+            Recordá que en caso de no ser aceptado, el bien te será devuelto con los gastos a
+            tu cargo.
+          </ThemedText>
+        </Card>
+      ) : null}
+
       {solicitud.estado === 'aceptada' ? (
         <Card elevated style={styles.proposal}>
           <ThemedText type="heading">La empresa aceptó tu bien</ThemedText>
@@ -175,7 +294,7 @@ function StatusBody({ solicitud }: { solicitud: SolicitudOut }) {
             </ThemedText>
             <ThemedText type="smallBold">
               {solicitud.precio_base_propuesto != null
-                ? `$${num(solicitud.precio_base_propuesto).toLocaleString('en-US')}`
+                ? `$${fmtPrice(num(solicitud.precio_base_propuesto))}`
                 : '—'}
             </ThemedText>
           </View>
@@ -185,7 +304,7 @@ function StatusBody({ solicitud }: { solicitud: SolicitudOut }) {
             </ThemedText>
             <ThemedText type="smallBold">
               {solicitud.comision_propuesta != null
-                ? `$${num(solicitud.comision_propuesta).toLocaleString('en-US')}`
+                ? `$${fmtPrice(num(solicitud.comision_propuesta))}`
                 : '—'}
             </ThemedText>
           </View>
@@ -195,6 +314,64 @@ function StatusBody({ solicitud }: { solicitud: SolicitudOut }) {
             </ThemedText>
             <ThemedText type="smallBold">{shortDate(solicitud.fecha_subasta_propuesta)}</ThemedText>
           </View>
+
+          <View style={[styles.infoSection, { backgroundColor: theme.cardElevated, borderColor: theme.border }]}>
+            <ThemedText type="smallBold">Si aceptás, tu bien recibirá:</ThemedText>
+            <View style={styles.proposalRow}>
+              <ThemedText type="small" themeColor="textSecondary">Póliza de seguro</ThemedText>
+              <ThemedText type="smallBold">POL-SOL-{solicitud.id}</ThemedText>
+            </View>
+            <View style={styles.proposalRow}>
+              <ThemedText type="small" themeColor="textSecondary">Asegurado por</ThemedText>
+              <ThemedText type="smallBold">Bidify Seguros S.A.</ThemedText>
+            </View>
+            <View style={styles.proposalRow}>
+              <ThemedText type="small" themeColor="textSecondary">Ubicación</ThemedText>
+              <ThemedText type="smallBold">Bidify - Online</ThemedText>
+            </View>
+            <View style={styles.proposalRow}>
+              <ThemedText type="small" themeColor="textSecondary">Nº de pieza</ThemedText>
+              <ThemedText type="smallBold">SOL-{solicitud.id}</ThemedText>
+            </View>
+          </View>
+
+          <View style={styles.categoriaSection}>
+            <ThemedText type="small" themeColor="textSecondary">
+              ¿Para qué categoría querés que sea la subasta?
+            </ThemedText>
+            <View style={styles.categoriaChips}>
+              {CATEGORIAS.map((c) => (
+                <Chip
+                  key={c.value}
+                  label={c.label}
+                  active={selectedCategoria === c.value}
+                  onPress={() => setSelectedCategoria(c.value)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <Pressable
+            onPress={() => setIniciarInmediatamente((v) => !v)}
+            style={styles.checkRow}>
+            <View
+              style={[
+                styles.checkbox,
+                {
+                  backgroundColor: iniciarInmediatamente ? theme.primary : 'transparent',
+                  borderColor: iniciarInmediatamente ? theme.primary : theme.borderStrong,
+                },
+              ]}>
+              {iniciarInmediatamente ? <Icon name="checkmark" size={12} color={theme.onPrimary} /> : null}
+            </View>
+            <View style={styles.flex}>
+              <ThemedText type="smallBold">Iniciar subasta inmediatamente</ThemedText>
+              <ThemedText type="caption" themeColor="textMuted">
+                La subasta quedará activa al instante en lugar de esperar la fecha programada.
+              </ThemedText>
+            </View>
+          </Pressable>
+
           {responder.isError ? (
             <ThemedText type="caption" style={{ color: theme.danger }}>
               No se pudo registrar tu respuesta. Probá de nuevo.
@@ -205,14 +382,14 @@ function StatusBody({ solicitud }: { solicitud: SolicitudOut }) {
               title="Aceptar"
               fullWidth
               loading={responder.isPending}
-              onPress={() => responder.mutate(true)}
+              onPress={() => responder.mutate({ acepta: true, categoria_minima: selectedCategoria, iniciar_inmediatamente: iniciarInmediatamente })}
             />
             <Button
               title="Rechazar"
               variant="ghost"
               fullWidth
               disabled={responder.isPending}
-              onPress={() => responder.mutate(false)}
+              onPress={() => responder.mutate({ acepta: false })}
             />
           </View>
           <ThemedText type="caption" themeColor="textMuted">
@@ -322,6 +499,20 @@ const styles = StyleSheet.create({
   listRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   listThumb: { width: 48, height: 48, borderRadius: Radius.sm, backgroundColor: '#0E121A' },
   proposal: { gap: Spacing.three },
+  confirmedHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingBottom: Spacing.two, borderBottomWidth: 1 },
+  infoSection: { borderWidth: 1, borderRadius: Radius.md, padding: Spacing.three, gap: Spacing.two },
   proposalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   proposalActions: { gap: Spacing.two, marginTop: Spacing.two },
+  categoriaSection: { gap: Spacing.two },
+  categoriaChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
 });

@@ -29,6 +29,7 @@ async def crear_puja(payload: PujaCreate, db: Session = Depends(get_db)):
             catalogo_item_id=payload.catalogo_item_id,
             usuario_id=payload.usuario_id,
             monto=payload.monto,
+            retira_personalmente=payload.retira_personalmente,
         )
     except PujaInvalida as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))

@@ -9,10 +9,11 @@ type InputProps = TextInputProps & {
   label?: string;
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
+  error?: string;
 };
 
 export const Input = forwardRef<TextInput, InputProps>(function Input(
-  { label, leading, trailing, style, ...rest },
+  { label, leading, trailing, error, style, ...rest },
   ref,
 ) {
   const theme = useTheme();
@@ -24,7 +25,10 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
         </ThemedText>
       ) : null}
       <View
-        style={[styles.field, { backgroundColor: theme.cardElevated, borderColor: theme.border }]}>
+        style={[
+          styles.field,
+          { backgroundColor: theme.cardElevated, borderColor: error ? theme.danger : theme.border },
+        ]}>
         {leading}
         <TextInput
           ref={ref}
@@ -34,6 +38,11 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
         />
         {trailing}
       </View>
+      {error ? (
+        <ThemedText type="caption" style={{ color: theme.danger, marginLeft: 4 }}>
+          {error}
+        </ThemedText>
+      ) : null}
     </View>
   );
 });

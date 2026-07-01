@@ -9,16 +9,25 @@ import { useTheme } from '@/hooks/use-theme';
 type ScreenHeaderProps = {
   title?: string;
   onBack?: () => void;
+  /** Ruta a la que ir si no hay stack para volver (router.canGoBack() === false). */
+  fallbackRoute?: string;
   rightIcon?: IconName;
   onRightPress?: () => void;
 };
 
-export function ScreenHeader({ title, onBack, rightIcon, onRightPress }: ScreenHeaderProps) {
+export function ScreenHeader({ title, onBack, fallbackRoute, rightIcon, onRightPress }: ScreenHeaderProps) {
   const theme = useTheme();
+  const handleBack = onBack ?? (() => {
+    if (router.canGoBack()) {
+      router.back();
+    } else if (fallbackRoute) {
+      router.replace(fallbackRoute as any);
+    }
+  });
   return (
     <View style={styles.row}>
       <Pressable
-        onPress={onBack ?? (() => router.back())}
+        onPress={handleBack}
         style={[styles.iconBtn, { backgroundColor: theme.cardElevated }]}>
         <Icon name="chevron-back" size={22} />
       </Pressable>

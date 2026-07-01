@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from app.database import Base, SessionLocal, engine
+from app.services.auth import hash_password
 from app.models import (
     Articulo,
     CatalogoItem,
@@ -77,19 +78,19 @@ def run():
             nombre="Ana", apellido="Gómez", email="ana@example.com",
             domicilio="Av. Corrientes 1234", pais="Argentina",
             categoria=CategoriaUsuario.PLATA, estado_registro=EstadoRegistro.COMPLETO,
-            password_hash="hashed:demo1234",
+            password_hash=hash_password("demo1234"),
         )
         luis = Usuario(
             nombre="Luis", apellido="Martínez", email="luis@example.com",
             domicilio="Rivadavia 555", pais="Argentina",
             categoria=CategoriaUsuario.ORO, estado_registro=EstadoRegistro.COMPLETO,
-            password_hash="hashed:demo1234",
+            password_hash=hash_password("demo1234"),
         )
         sofia = Usuario(
             nombre="Sofía", apellido="Rossi", email="sofia@example.com",
             domicilio="Av. del Libertador 4000", pais="Argentina",
             categoria=CategoriaUsuario.PLATINO, estado_registro=EstadoRegistro.COMPLETO,
-            password_hash="hashed:demo1234",
+            password_hash=hash_password("demo1234"),
         )
         db.add_all([ana, luis, sofia])
         db.flush()

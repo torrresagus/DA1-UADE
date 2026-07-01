@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { ApiError } from '@/api/client';
 import { ThemedText } from '@/components/themed-text';
 import { BidifyMark } from '@/components/ui/bidify-mark';
 import { Button } from '@/components/ui/button';
@@ -9,15 +10,13 @@ import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
-import { AuthError, useSession } from '@/context/session';
+import { useSession } from '@/context/session';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function LoginScreen() {
   const theme = useTheme();
-  const { login } = useSession();
+  const { login, enterGuestMode } = useSession();
   const [email, setEmail] = useState('');
-  // Password is cosmetic: the backend has no auth, login resolves the user by
-  // email only. We still require it non-empty in the form for UX parity.
   const [password, setPassword] = useState('');
   const [secure, setSecure] = useState(true);
   const [remember, setRemember] = useState(true);
@@ -34,7 +33,7 @@ export default function LoginScreen() {
       await login(email.trim(), password);
       router.replace('/(tabs)/home');
     } catch (e) {
-      setError(e instanceof AuthError ? e.message : 'No se pudo iniciar sesión. Intenta de nuevo.');
+      setError(e instanceof ApiError ? e.detail : 'No se pudo iniciar sesión. Intenta de nuevo.');
     } finally {
       setIsSubmitting(false);
     }
@@ -43,7 +42,7 @@ export default function LoginScreen() {
   return (
     <Screen padded>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}>
         <ScrollView
           contentContainerStyle={styles.content}
@@ -148,6 +147,13 @@ export default function LoginScreen() {
               </ThemedText>
             </Pressable>
           </View>
+          <Pressable
+            onPress={async () => { await enterGuestMode(); router.replace('/(tabs)/home'); }}
+            style={styles.guestLink}>
+            <ThemedText type="small" themeColor="textMuted">
+              Continuar como invitado
+            </ThemedText>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
@@ -174,4 +180,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   footer: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.two },
+  guestLink: { alignItems: 'center', paddingVertical: Spacing.two },
 });

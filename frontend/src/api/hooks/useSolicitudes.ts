@@ -9,7 +9,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 
 import * as solicitudesApi from '@/api/endpoints/solicitudes';
 import { queryClient, queryKeys } from '@/api/query-client';
-import type { SolicitudCreate, SolicitudOut } from '@/api/types';
+import type { SolicitudCreate, SolicitudOut, SolicitudRespuestaUsuario } from '@/api/types';
 
 /** True for ids that are usable as backend resource identifiers. */
 function isValidId(id: number | null | undefined): id is number {
@@ -32,12 +32,13 @@ export function useCrearSolicitud(usuarioId: number) {
   });
 }
 
-/** Fetch a single solicitud by id. Disabled until `solicitudId` is valid. */
+/** Fetch a single solicitud by id. Polls every 5 s so status transitions are visible in real time. */
 export function useSolicitud(solicitudId: number | null) {
   return useQuery({
     queryKey: queryKeys.solicitud(solicitudId as number),
     queryFn: () => solicitudesApi.getSolicitud(solicitudId as number),
     enabled: isValidId(solicitudId),
+    refetchInterval: 5000,
   });
 }
 
@@ -48,8 +49,9 @@ export function useSolicitud(solicitudId: number | null) {
  * client-side by `usuario_id`. Disabled until `usuarioId` is valid.
  */
 export function useResponderSolicitud(solicitudId: number) {
-  return useMutation<SolicitudOut, Error, boolean>({
-    mutationFn: (acepta: boolean) => solicitudesApi.responderSolicitud(solicitudId, acepta),
+  return useMutation<SolicitudOut, Error, SolicitudRespuestaUsuario>({
+    mutationFn: (payload: SolicitudRespuestaUsuario) =>
+      solicitudesApi.responderSolicitud(solicitudId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.solicitud(solicitudId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.solicitudes() });

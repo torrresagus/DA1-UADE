@@ -3,19 +3,16 @@
  * registration flow, because the backend is a 3-step state machine:
  *   etapa-1  ->  (admin) aprobacion  ->  etapa-2 (password)
  *
- * register-account submits etapa-1 and stashes the new usuario_id + password;
- * register-finish calls finish() which runs etapa-2, transparently inserting
- * the aprobacion step when EXPO_PUBLIC_AUTO_APPROVE is enabled (default in dev),
- * since etapa-2 otherwise 409s while the user is PENDIENTE_VERIFICACION.
+ * register-account submits etapa-1 and stashes the new usuario_id.
+ * register-finish calls finish() which runs etapa-2; if the user is still
+ * PENDIENTE_VERIFICACION the backend returns 409 and finish() re-throws it
+ * so register-finish can display "Tu registro está en revisión."
  */
 
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-import { ApiError } from '@/api/client';
-import { aprobacion, registroEtapa1, registroEtapa2 } from '@/api/endpoints/usuarios';
+import { registroEtapa1, registroEtapa2 } from '@/api/endpoints/usuarios';
 import type { UsuarioOut } from '@/api/types';
-
-const AUTO_APPROVE = process.env.EXPO_PUBLIC_AUTO_APPROVE !== 'false';
 
 export type RegistrationDraft = {
   usuarioId: number;
@@ -70,17 +67,7 @@ export function RegistrationProvider({ children }: { children: React.ReactNode }
   const finish = useCallback(
     async (password: string) => {
       if (!draft) throw new Error('No hay un registro en curso.');
-      try {
-        return await registroEtapa2(draft.usuarioId, { password });
-      } catch (e) {
-        const is409 = e instanceof ApiError && e.status === 409;
-        if (is409 && AUTO_APPROVE) {
-          // Dev shim: perform the manual company approval, then retry etapa-2.
-          await aprobacion(draft.usuarioId, { categoria: 'comun' });
-          return await registroEtapa2(draft.usuarioId, { password });
-        }
-        throw e;
-      }
+      return await registroEtapa2(draft.usuarioId, { password });
     },
     [draft],
   );

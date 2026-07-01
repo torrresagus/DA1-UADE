@@ -16,7 +16,7 @@ const MIN_DELAY_MS = 900;
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function SplashRoute() {
-  const { status } = useSession();
+  const { status, isGuest } = useSession();
 
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => {});
@@ -31,7 +31,7 @@ export default function SplashRoute() {
       // Decide the destination up front, then enforce a small minimum delay
       // before navigating so the mark gets a beat of screen time (polish).
       let destination: string;
-      if (status === 'authed') {
+      if (status === 'authed' || isGuest) {
         destination = '/(tabs)/home';
       } else {
         const seen = await AsyncStorage.getItem(ONBOARDING_SEEN_KEY).catch(() => null);
@@ -47,7 +47,7 @@ export default function SplashRoute() {
     return () => {
       active = false;
     };
-  }, [status]);
+  }, [status, isGuest]);
 
   return (
     <Screen>

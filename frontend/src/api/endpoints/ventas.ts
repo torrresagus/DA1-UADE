@@ -22,6 +22,11 @@ export function listVentas(): Promise<VentaOut[]> {
   return apiFetch<VentaOut[]>('/ventas');
 }
 
+/** Sales where the given user is the buyer. */
+export function getVentasUsuario(usuarioId: number): Promise<VentaOut[]> {
+  return apiFetch<VentaOut[]>(`/ventas/usuario/${usuarioId}`);
+}
+
 /** A single sale by id. */
 export function getVenta(id: number): Promise<VentaOut> {
   return apiFetch<VentaOut>(`/ventas/${id}`);

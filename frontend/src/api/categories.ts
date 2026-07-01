@@ -21,3 +21,16 @@ export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 
 export const HOME_FILTERS = ['Todas', 'En vivo', 'Próximas'] as const;
 export type HomeFilter = (typeof HOME_FILTERS)[number];
+
+export const TIER_FILTERS = ['Todas', 'Común', 'Especial', 'Plata', 'Oro', 'Platino'] as const;
+export type TierFilter = (typeof TIER_FILTERS)[number];
+
+/** Maps display label → backend categoria_minima value */
+export const TIER_FILTER_VALUE: Record<TierFilter, string | null> = {
+  Todas: null,
+  Común: 'comun',
+  Especial: 'especial',
+  Plata: 'plata',
+  Oro: 'oro',
+  Platino: 'platino',
+};

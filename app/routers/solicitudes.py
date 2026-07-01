@@ -1,8 +1,25 @@
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
-from app.models import EstadoSolicitud, ImagenSolicitud, SolicitudSubasta, Usuario
+from app.models import (
+    Articulo,
+    CatalogoItem,
+    Deposito,
+    EstadoArticulo,
+    EstadoSolicitud,
+    EstadoSubasta,
+    ImagenArticulo,
+    ImagenSolicitud,
+    Rematador,
+    Seguro,
+    SolicitudSubasta,
+    Subasta,
+    Usuario,
+)
 from app.routers.notificaciones import crear_notificacion
 from app.schemas.solicitud import (
     SolicitudCreate,
@@ -10,6 +27,28 @@ from app.schemas.solicitud import (
     SolicitudResolucion,
     SolicitudRespuestaUsuario,
 )
+
+
+def _get_deposito_central(db: Session) -> Deposito:
+    dep = db.query(Deposito).filter(Deposito.nombre == settings.deposito_nombre).first()
+    if dep is None:
+        dep = Deposito(
+            nombre=settings.deposito_nombre,
+            direccion=settings.deposito_direccion,
+            ciudad=settings.deposito_ciudad,
+        )
+        db.add(dep)
+        db.flush()
+    return dep
+
+
+def _get_rematador_default(db: Session) -> Rematador:
+    r = db.query(Rematador).first()
+    if r is None:
+        r = Rematador(nombre="Bidify", apellido="Rematador", matricula="BIDIFY-AUTO-001")
+        db.add(r)
+        db.flush()
+    return r
 
 router = APIRouter(prefix="/solicitudes", tags=["Solicitudes de subasta"])
 
@@ -130,6 +169,125 @@ def responder_solicitud(
     s.respuesta_usuario = payload.acepta
     if payload.acepta:
         s.estado = EstadoSolicitud.CONFIRMADA_POR_USUARIO
+
+        # Crear el artículo a partir de los datos de la solicitud.
+        precio = Decimal(s.precio_base_propuesto)
+        deposito = _get_deposito_central(db)
+        articulo = Articulo(
+            numero_pieza=f"SOL-{s.id}",
+            descripcion=s.descripcion,
+            historia=s.datos_historicos,
+            precio_base=precio,
+            moneda="ARS",
+            dueno_actual_id=s.usuario_id,
+            estado=EstadoArticulo.EN_SUBASTA,
+            deposito_id=deposito.id,
+            cantidad_elementos=s.cantidad_elementos,
+        )
+        db.add(articulo)
+        db.flush()
+
+        # Copiar las fotos de la solicitud al artículo.
+        for img in s.imagenes:
+            db.add(ImagenArticulo(articulo_id=articulo.id, url=img.url, orden=img.orden))
+
+        # Seguro automático para el artículo.
+        seguro = Seguro(
+            nro_poliza=f"POL-SOL-{s.id}",
+            compania=settings.seguro_compania,
+            beneficiario_id=s.usuario_id,
+            monto_cubierto=precio,
+            moneda="ARS",
+        )
+        seguro.articulos = [articulo]
+        db.add(seguro)
+
+        # Collection auction: if a PROGRAMADA subasta already has articles from this
+        # user, merge the new one into it (the company groups lots by consignor).
+        # Si se pidió inicio inmediato, siempre se crea una subasta nueva ABIERTA.
+        existing_subasta = None
+        if not payload.iniciar_inmediatamente:
+            existing_subasta = (
+                db.query(Subasta)
+                .join(CatalogoItem, CatalogoItem.subasta_id == Subasta.id)
+                .join(Articulo, Articulo.id == CatalogoItem.articulo_id)
+                .filter(
+                    Subasta.estado == EstadoSubasta.PROGRAMADA,
+                    Articulo.dueno_actual_id == s.usuario_id,
+                )
+                .first()
+            )
+
+        if existing_subasta:
+            existing_subasta.es_coleccion = True
+            if not existing_subasta.nombre_coleccion:
+                usuario_obj = db.get(Usuario, s.usuario_id)
+                existing_subasta.nombre_coleccion = (
+                    f"Colección de {usuario_obj.nombre} {usuario_obj.apellido}"
+                    if usuario_obj else "Colección"
+                )
+            db.add(CatalogoItem(
+                subasta_id=existing_subasta.id,
+                articulo_id=articulo.id,
+                precio_base=precio,
+                orden=len(existing_subasta.catalogo) + 1,
+            ))
+            subasta = existing_subasta
+            notif_titulo = "Bien añadido a tu colección"
+            notif_cuerpo = (
+                f"Tu bien se sumó a la colección \"{subasta.nombre_coleccion}\". "
+                f"Subasta programada para el {subasta.fecha_hora.strftime('%d/%m/%Y') if subasta.fecha_hora else '—'}."
+            )
+        else:
+            from datetime import datetime as _dt, timedelta as _td
+            rematador = _get_rematador_default(db)
+            if payload.iniciar_inmediatamente:
+                # 2 minutos de ventana para pujar antes del cierre automático.
+                fecha_subasta = _dt.utcnow() + _td(minutes=2)
+                estado_subasta = EstadoSubasta.ABIERTA
+            else:
+                fecha_subasta = s.fecha_subasta_propuesta
+                estado_subasta = EstadoSubasta.PROGRAMADA
+            rematador = _get_rematador_default(db)
+            subasta = Subasta(
+                nombre=(s.descripcion or "Bien")[:100],
+                fecha_hora=fecha_subasta,
+                ubicacion="Bidify - Online",
+                categoria_minima=payload.categoria_minima,
+                moneda="ARS",
+                estado=estado_subasta,
+                rematador_id=rematador.id,
+            )
+            db.add(subasta)
+            db.flush()
+            db.add(CatalogoItem(
+                subasta_id=subasta.id,
+                articulo_id=articulo.id,
+                precio_base=precio,
+                orden=1,
+            ))
+            if payload.iniciar_inmediatamente:
+                notif_titulo = "¡Tu subasta está activa!"
+                notif_cuerpo = (
+                    "Tu bien ya está en subasta ahora mismo. "
+                    f"Categoría mínima: {payload.categoria_minima.value.capitalize()}. "
+                    "Entrá al inicio de la app para verla en vivo."
+                )
+            else:
+                notif_titulo = "¡Tu subasta fue programada!"
+                notif_cuerpo = (
+                    f"Tu bien estará en subasta el {s.fecha_subasta_propuesta.strftime('%d/%m/%Y') if s.fecha_subasta_propuesta else '—'}. "
+                    f"Categoría mínima: {payload.categoria_minima.value.capitalize()}. "
+                    "Ya aparece en el inicio de la app."
+                )
+
+        crear_notificacion(
+            db,
+            usuario_id=s.usuario_id,
+            tipo="solicitud",
+            titulo=notif_titulo,
+            cuerpo=notif_cuerpo,
+        )
     else:
         # No acepta valor/comisiones: se procede a la devolución informando gastos.
         s.estado = EstadoSolicitud.RECHAZADA_POR_USUARIO

@@ -30,8 +30,11 @@ function deviceHostFallback(): string {
 export function resolveBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_API_URL;
   if (fromEnv) return fromEnv.replace(/\/+$/, '');
-  if (Platform.OS === 'android') return `http://10.0.2.2:${DEFAULT_PORT}`;
-  if (Platform.OS === 'web' || Platform.OS === 'ios') return `http://localhost:${DEFAULT_PORT}`;
+  // Android emulator: 10.0.2.2 is the host loopback alias.
+  if (Platform.OS === 'android' && !Constants.isDevice) return `http://10.0.2.2:${DEFAULT_PORT}`;
+  // iOS simulator or web dev server.
+  if (!Constants.isDevice) return `http://localhost:${DEFAULT_PORT}`;
+  // Physical device (Android or iOS): derive the LAN IP from the Expo dev server hostUri.
   return deviceHostFallback();
 }
 

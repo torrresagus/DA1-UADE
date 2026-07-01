@@ -16,6 +16,7 @@ import { ErrorState, LoadingState } from '@/components/ui/states';
 import { Radius, Spacing } from '@/constants/theme';
 import { useSession } from '@/context/session';
 import { useTheme } from '@/hooks/use-theme';
+import { fmtPrice } from '@/utils/format';
 
 export default function AuctionDetailScreen() {
   const theme = useTheme();
@@ -60,6 +61,10 @@ export default function AuctionDetailScreen() {
     {
       label: 'Elementos',
       value: vm.cantidadElementos > 1 ? String(vm.cantidadElementos) : null,
+    },
+    {
+      label: 'Colección',
+      value: vm.esColeccion ? (vm.nombreColeccion ?? 'Sí') : null,
     },
   ].filter((s): s is { label: string; value: string } => !!s.value);
 
@@ -123,7 +128,7 @@ export default function AuctionDetailScreen() {
                 Puja actual
               </ThemedText>
               <ThemedText type="price" style={styles.bigPrice}>
-                ${vm.currentBid.toLocaleString('en-US')}
+                ${fmtPrice(vm.currentBid)} {vm.moneda}
               </ThemedText>
             </View>
             {vm.timingLabel ? (

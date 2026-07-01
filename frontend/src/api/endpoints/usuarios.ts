@@ -3,7 +3,7 @@
  * collection accounts. No auth: the integer `usuario_id` is the identity.
  *
  * Thin wrappers over `apiFetch`/`del`; see VERIFIED BACKEND PATHS in the API
- * docs. `findUsuarioByEmail` is a client-side helper used by login.
+ * docs.
  */
 
 import { apiFetch, del } from '@/api/client';
@@ -11,7 +11,6 @@ import type {
   UsuarioOut,
   UsuarioRegistroEtapa1,
   UsuarioRegistroEtapa2,
-  UsuarioAprobacion,
   CuentaCobroCreate,
   CuentaCobroOut,
   MedioPagoCreate,
@@ -31,10 +30,6 @@ export async function getUsuario(id: number): Promise<UsuarioOut> {
 
 export async function registroEtapa1(body: UsuarioRegistroEtapa1): Promise<UsuarioOut> {
   return apiFetch<UsuarioOut>('/usuarios/registro/etapa-1', { method: 'POST', body });
-}
-
-export async function aprobacion(id: number, body: UsuarioAprobacion): Promise<UsuarioOut> {
-  return apiFetch<UsuarioOut>(`/usuarios/${id}/aprobacion`, { method: 'POST', body });
 }
 
 export async function registroEtapa2(id: number, body: UsuarioRegistroEtapa2): Promise<UsuarioOut> {
@@ -82,14 +77,25 @@ export async function createCuentaCobro(
   return apiFetch<CuentaCobroOut>(`/usuarios/${usuarioId}/cuentas-cobro`, { method: 'POST', body });
 }
 
-// ─── Login helper ────────────────────────────────────────────────────────────
+// ─── Configuración de cuenta ─────────────────────────────────────────────────
 
-/**
- * Find a usuario by email (case-insensitive, trimmed). Used by login since the
- * backend has no auth endpoint — we list and match client-side.
- */
-export async function findUsuarioByEmail(email: string): Promise<UsuarioOut | null> {
-  const target = email.trim().toLowerCase();
-  const usuarios = await listUsuarios();
-  return usuarios.find((u) => u.email.trim().toLowerCase() === target) ?? null;
+export async function cambiarPassword(
+  id: number,
+  body: { password_actual: string; password_nueva: string },
+): Promise<UsuarioOut> {
+  return apiFetch<UsuarioOut>(`/usuarios/${id}/cambiar-password`, { method: 'PATCH', body });
+}
+
+export async function cambiarEmail(
+  id: number,
+  body: { email_nuevo: string },
+): Promise<UsuarioOut> {
+  return apiFetch<UsuarioOut>(`/usuarios/${id}/cambiar-email`, { method: 'PATCH', body });
+}
+
+// ─── Login ───────────────────────────────────────────────────────────────────
+
+/** Authenticate with email + password. Throws ApiError(401) on bad credentials. */
+export async function loginUsuario(email: string, password: string): Promise<UsuarioOut> {
+  return apiFetch<UsuarioOut>('/usuarios/login', { method: 'POST', body: { email, password } });
 }

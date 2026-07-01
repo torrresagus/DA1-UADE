@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Numeric
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -18,6 +18,7 @@ class Puja(Base):
     monto: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     fecha_hora: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     estado: Mapped[EstadoPuja] = mapped_column(Enum(EstadoPuja), default=EstadoPuja.CONFIRMADA)
+    retira_personalmente: Mapped[bool] = mapped_column(Boolean, default=False)
 
     subasta = relationship("Subasta", back_populates="pujas")
     catalogo_item = relationship("CatalogoItem", back_populates="pujas")

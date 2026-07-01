@@ -88,3 +88,32 @@ export async function pickAndUploadAsync(): Promise<string | null> {
   if (result.canceled || !result.assets?.length) return null;
   return uploadImageAsync(result.assets[0].uri);
 }
+
+/**
+ * Open the picker allowing up to `limit` images, upload them sequentially.
+ * Calls `onProgress(uploaded, total)` after each successful upload.
+ * Resolves to the list of uploaded URLs (empty if cancelled).
+ */
+export async function pickAndUploadMultipleAsync(
+  limit: number,
+  onProgress?: (uploaded: number, total: number) => void,
+): Promise<string[]> {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) {
+    throw new Error('Necesitamos permiso para acceder a tus fotos.');
+  }
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsMultipleSelection: true,
+    selectionLimit: limit,
+    quality: 0.7,
+  });
+  if (result.canceled || !result.assets?.length) return [];
+  const urls: string[] = [];
+  for (const asset of result.assets) {
+    const url = await uploadImageAsync(asset.uri);
+    urls.push(url);
+    onProgress?.(urls.length, result.assets.length);
+  }
+  return urls;
+}

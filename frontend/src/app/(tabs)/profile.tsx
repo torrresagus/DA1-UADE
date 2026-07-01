@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useProfile } from '@/api/hooks/useMetricas';
+import { useUnpaidMultaCount } from '@/api/hooks/useMultas';
 import type { CategoriaUsuario } from '@/api/types';
 import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/ui/card';
@@ -20,8 +21,9 @@ const ROWS: Row[] = [
   { icon: 'cloud-upload-outline', label: 'Cargar producto', href: '/upload-product' },
   { icon: 'cube-outline', label: 'Mis productos', href: '/product-status' },
   { icon: 'shield-checkmark-outline', label: 'Seguros y depósitos', href: '/seguros' },
+  { icon: 'warning-outline', label: 'Mis multas', href: '/multas' },
   { icon: 'notifications-outline', label: 'Notificaciones', href: '/notifications' },
-  { icon: 'settings-outline', label: 'Ajustes' },
+  { icon: 'settings-outline', label: 'Ajustes', href: '/settings' },
 ];
 
 function capitalize(value: string): string {
@@ -39,6 +41,7 @@ export default function ProfileScreen() {
   const theme = useTheme();
   const { usuario, usuarioId, logout } = useSession();
   const q = useProfile(usuarioId);
+  const unpaidMultas = useUnpaidMultaCount(usuarioId);
 
   async function handleLogout() {
     await logout();
@@ -49,21 +52,39 @@ export default function ProfileScreen() {
   const navSection = (
     <>
       <Card padded={false}>
-        {ROWS.map((row, i) => (
-          <View key={row.label}>
-            {i > 0 && <View style={[styles.divider, { backgroundColor: theme.border }]} />}
-            <Card
-              padded={false}
-              onPress={row.href ? () => router.push(row.href as any) : undefined}
-              style={styles.rowInner}>
-              <View style={styles.rowLeft}>
-                <Icon name={row.icon} size={20} color={theme.primary} />
-                <ThemedText type="default">{row.label}</ThemedText>
-              </View>
-              <Icon name="chevron-forward" size={18} color={theme.textSecondary} />
-            </Card>
-          </View>
-        ))}
+        {ROWS.map((row, i) => {
+          const showMultaBadge = row.href === '/multas' && unpaidMultas > 0;
+          return (
+            <View key={row.label}>
+              {i > 0 && <View style={[styles.divider, { backgroundColor: theme.border }]} />}
+              <Card
+                padded={false}
+                onPress={row.href ? () => router.push(row.href as any) : undefined}
+                style={styles.rowInner}>
+                <View style={styles.rowLeft}>
+                  <Icon
+                    name={row.icon}
+                    size={20}
+                    color={showMultaBadge ? theme.danger : theme.primary}
+                  />
+                  <ThemedText
+                    type="default"
+                    style={showMultaBadge ? { color: theme.danger } : undefined}>
+                    {row.label}
+                  </ThemedText>
+                  {showMultaBadge ? (
+                    <View style={[styles.multaBadge, { backgroundColor: theme.danger }]}>
+                      <ThemedText type="caption" style={{ color: '#fff', fontSize: 11 }}>
+                        {unpaidMultas}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+                </View>
+                <Icon name="chevron-forward" size={18} color={theme.textSecondary} />
+              </Card>
+            </View>
+          );
+        })}
       </Card>
 
       <Card onPress={handleLogout} style={styles.logout}>
@@ -199,4 +220,12 @@ const styles = StyleSheet.create({
   },
   rowLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   logout: { alignItems: 'center' },
+  multaBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
 });

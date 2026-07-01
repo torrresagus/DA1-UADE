@@ -11,6 +11,7 @@ class PujaCreate(BaseModel):
     catalogo_item_id: int
     usuario_id: int
     monto: Decimal
+    retira_personalmente: bool = False
 
 
 class PujaOut(ORMBase):
@@ -21,6 +22,7 @@ class PujaOut(ORMBase):
     monto: Decimal
     fecha_hora: datetime
     estado: EstadoPuja
+    retira_personalmente: bool
 
 
 class MejorOferta(BaseModel):

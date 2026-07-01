@@ -23,6 +23,23 @@ import {
 
 export type LotStatus = 'live' | 'upcoming' | 'closed';
 
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  Relojes: ['reloj', 'watch', 'rolex', 'omega', 'cartier', 'seiko', 'breitling', 'tag heuer', 'cronógrafo'],
+  Autos: ['auto', 'coche', 'carro', 'vehículo', 'ferrari', 'porsche', 'bmw', 'mercedes', 'ford', 'chevrolet', 'lamborghini', 'maserati', 'bugatti'],
+  Joyas: ['joya', 'diamante', 'oro', 'plata', 'anillo', 'collar', 'pulsera', 'esmeralda', 'rubí', 'zafiro', 'perla', 'brillante', 'gema'],
+  Arte: ['arte', 'pintura', 'cuadro', 'escultura', 'dibujo', 'grabado', 'óleo', 'acuarela', 'lienzo', 'picasso', 'dalí', 'obra'],
+  Vinos: ['vino', 'wine', 'malbec', 'cabernet', 'champagne', 'champán', 'whisky', 'cognac', 'bodega', 'añada', 'espumante'],
+  Coleccionables: ['colección', 'figura', 'moneda', 'sello', 'estampilla', 'vintage', 'antigüedad', 'coleccionable', 'rareza', 'edición limitada'],
+};
+
+function inferCategory(text: string): string {
+  const lower = text.toLowerCase();
+  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (keywords.some((k) => lower.includes(k))) return cat;
+  }
+  return 'Otros';
+}
+
 export function estadoToStatus(estado: EstadoSubasta): LotStatus {
   if (estado === 'abierta') return 'live';
   if (estado === 'programada') return 'upcoming';
@@ -78,16 +95,22 @@ export function toLotCard(
   const mejor = mejorByItemId[item.id];
   const currentBid = mejor?.mejor_monto != null ? num(mejor.mejor_monto) : num(item.precio_base);
 
+  const searchText = [articulo?.descripcion ?? '', articulo?.artista ?? '', subasta.nombre ?? ''].join(' ');
+
   return {
     id: String(item.id),
     title: articulo?.descripcion ?? articulo?.numero_pieza ?? `Lote #${item.id}`,
     image: firstImage(articulo),
     currentBid,
-    category: articulo?.artista ?? undefined,
+    moneda: subasta.moneda,
+    category: inferCategory(searchText),
     status: item.vendido ? 'closed' : status,
     statusLabel: item.vendido ? 'Vendido' : statusLabel(status),
     endsInLabel: timingLabel(subasta.estado, subasta.fecha_hora),
     locked: computeLocked(usuarioCategoria, subasta.categoria_minima),
+    esColeccion: subasta.es_coleccion,
+    nombreColeccion: subasta.nombre_coleccion,
+    categoriaMinima: subasta.categoria_minima,
   };
 }
 
@@ -130,11 +153,14 @@ export type AuctionDetailVM = {
   status: LotStatus;
   statusLabel: string;
   timingLabel?: string;
+  closingTime: string | null;
   ubicacion: string;
   subastaNombre: string;
   categoriaMinima: CategoriaUsuario;
   locked: boolean;
   vendido: boolean;
+  esColeccion: boolean;
+  nombreColeccion: string | null;
 };
 
 export function toAuctionDetailVM(
@@ -164,11 +190,16 @@ export function toAuctionDetailVM(
     status,
     statusLabel: item.vendido ? 'Vendido' : statusLabel(status),
     timingLabel: timingLabel(subasta.estado, subasta.fecha_hora),
+    closingTime: subasta.estado === 'abierta' && subasta.fecha_hora
+      ? (subasta.fecha_hora.endsWith('Z') ? subasta.fecha_hora : subasta.fecha_hora + 'Z')
+      : null,
     ubicacion: subasta.ubicacion,
     subastaNombre: subasta.nombre,
     categoriaMinima: subasta.categoria_minima,
     locked: computeLocked(usuarioCategoria, subasta.categoria_minima),
     vendido: item.vendido,
+    esColeccion: subasta.es_coleccion,
+    nombreColeccion: subasta.nombre_coleccion,
   };
 }
 

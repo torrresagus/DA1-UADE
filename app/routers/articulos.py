@@ -1,9 +1,11 @@
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.models import Articulo, Deposito, ImagenArticulo, Seguro
-from decimal import Decimal
 
 from app.schemas.articulo import (
     ArticuloCreate,
@@ -28,6 +30,17 @@ def crear_articulo(payload: ArticuloCreate, db: Session = Depends(get_db)):
     for img in imagenes:
         art.imagenes.append(ImagenArticulo(**img))
     db.add(art)
+    db.flush()  # necesitamos art.id antes de crear el seguro
+    if art.dueno_actual_id is not None:
+        seguro = Seguro(
+            nro_poliza=f"POL-{art.numero_pieza}",
+            compania=settings.seguro_compania,
+            beneficiario_id=art.dueno_actual_id,
+            monto_cubierto=art.precio_base,
+            moneda=art.moneda,
+        )
+        seguro.articulos = [art]
+        db.add(seguro)
     db.commit()
     db.refresh(art)
     return art

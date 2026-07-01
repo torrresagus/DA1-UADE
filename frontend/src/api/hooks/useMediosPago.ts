@@ -12,19 +12,20 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 
 import * as usuariosApi from '@/api/endpoints/usuarios';
 import { queryClient, queryKeys } from '@/api/query-client';
-import type { CuentaCobroOut, MedioPagoCreate, MedioPagoOut } from '@/api/types';
+import type { CuentaCobroCreate, CuentaCobroOut, MedioPagoCreate, MedioPagoOut } from '@/api/types';
 
 /** True when `id` is a usable backend identity. */
 function isValidId(id: number | null): id is number {
   return id != null && Number.isFinite(id) && id > 0;
 }
 
-/** List the medios de pago for a usuario. Disabled until a valid id is known. */
+/** List the medios de pago for a usuario. Polls every 5 s so PENDIENTE → VERIFICADO is visible in real time. */
 export function useMediosPago(usuarioId: number | null) {
   return useQuery<MedioPagoOut[]>({
     queryKey: queryKeys.mediosPago(usuarioId ?? 0),
     queryFn: () => usuariosApi.listMediosPago(usuarioId as number),
     enabled: isValidId(usuarioId),
+    refetchInterval: 5000,
   });
 }
 
@@ -54,5 +55,15 @@ export function useCuentasCobro(usuarioId: number | null) {
     queryKey: queryKeys.cuentasCobro(usuarioId ?? 0),
     queryFn: () => usuariosApi.listCuentasCobro(usuarioId as number),
     enabled: isValidId(usuarioId),
+  });
+}
+
+/** Create a cuenta de cobro for a usuario; refreshes that usuario's list. */
+export function useCreateCuentaCobro(usuarioId: number) {
+  return useMutation<CuentaCobroOut, Error, CuentaCobroCreate>({
+    mutationFn: (body: CuentaCobroCreate) => usuariosApi.createCuentaCobro(usuarioId, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.cuentasCobro(usuarioId) });
+    },
   });
 }

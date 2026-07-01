@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
+import { getUsuario } from '@/api/endpoints/usuarios';
 import { RegisterSteps } from '@/components/register-steps';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
@@ -15,18 +16,48 @@ import { useRegistration } from '@/context/registration';
 import { useSession } from '@/context/session';
 import { useTheme } from '@/hooks/use-theme';
 
+type ApprovalState = 'checking' | 'pending' | 'approved';
+
 export default function RegisterFinishScreen() {
   const theme = useTheme();
   const { draft, finish, clear } = useRegistration();
   const { adoptUser } = useSession();
-  // Etapa-2: the bidder sets their personal password after the external
-  // verification of etapa-1 (per the enunciado).
+
+  const [approvalState, setApprovalState] = useState<ApprovalState>('checking');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [secure, setSecure] = useState(true);
   const [accepted, setAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const checkApproval = async () => {
+    if (!draft) {
+      setApprovalState('pending');
+      return;
+    }
+    setApprovalState('checking');
+    try {
+      const user = await getUsuario(draft.usuarioId);
+      if (user.estado_registro === 'aprobado_fase_1' || user.estado_registro === 'completo') {
+        setApprovalState('approved');
+      } else {
+        setApprovalState('pending');
+      }
+    } catch {
+      setApprovalState('pending');
+    }
+  };
+
+  useEffect(() => {
+    checkApproval();
+  }, [draft]);
+
+  useEffect(() => {
+    if (approvalState !== 'pending') return;
+    const interval = setInterval(checkApproval, 5000);
+    return () => clearInterval(interval);
+  }, [approvalState]);
 
   const passwordsMatch = password.length > 0 && password === confirm;
   const canSubmit = password.length >= 8 && passwordsMatch && accepted && !isSubmitting;
@@ -41,8 +72,6 @@ export default function RegisterFinishScreen() {
       clear();
       router.replace('/(tabs)/home');
     } catch (e) {
-      // A 409 that survives the auto-approve shim means the account is still in
-      // review; surface the backend detail otherwise.
       setError(
         e instanceof ApiError
           ? e.status === 409
@@ -55,11 +84,58 @@ export default function RegisterFinishScreen() {
     }
   };
 
-  return (
-    <Screen padded>
-      <ScreenHeader title="CREAR CUENTA" rightIcon="notifications-outline" />
-      <RegisterSteps current={3} />
+  const renderContent = () => {
+    if (approvalState === 'checking') {
+      return (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <ThemedText type="default" themeColor="textSecondary" style={styles.centerText}>
+            Verificando estado de tu solicitud…
+          </ThemedText>
+        </View>
+      );
+    }
 
+    if (approvalState === 'pending') {
+      return (
+        <View style={styles.centered}>
+          <View style={[styles.iconCircle, { backgroundColor: theme.cardElevated }]}>
+            <Icon name="time-outline" size={48} color={theme.primary} />
+          </View>
+          <ThemedText type="title" style={styles.centerText}>
+            Registro en revisión
+          </ThemedText>
+          <ThemedText type="default" themeColor="textSecondary" style={styles.centerText}>
+            Tus datos están siendo verificados por el equipo de Bidify. Una vez aprobada tu
+            solicitud, volvé a esta pantalla para crear tu contraseña.
+          </ThemedText>
+          {draft?.email ? (
+            <ThemedText type="small" themeColor="textSecondary" style={[styles.centerText, styles.hint]}>
+              Te enviamos un email a{' '}
+              <ThemedText type="smallBold">{draft.email}</ThemedText>
+              {' '}con las instrucciones para continuar.
+            </ThemedText>
+          ) : null}
+          <ThemedText type="small" themeColor="textMuted" style={[styles.centerText, styles.hint]}>
+            La aprobación es realizada manualmente por la empresa. Para consultas, contactá a
+            soporte.
+          </ThemedText>
+          <Button
+            title="Verificar estado"
+            fullWidth
+            onPress={checkApproval}
+            style={styles.checkBtn}
+          />
+          <Pressable onPress={() => router.replace('/(auth)/login')}>
+            <ThemedText type="link" style={{ color: theme.primary }}>
+              Volver al inicio de sesión
+            </ThemedText>
+          </Pressable>
+        </View>
+      );
+    }
+
+    return (
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.head}>
           <ThemedText type="title">Generá tu clave personal</ThemedText>
@@ -127,15 +203,31 @@ export default function RegisterFinishScreen() {
             {error}
           </ThemedText>
         ) : null}
-      </ScrollView>
 
-      <Button
-        title={isSubmitting ? 'Finalizando…' : 'FINALIZAR REGISTRO'}
-        fullWidth
-        disabled={!canSubmit}
-        style={styles.cta}
-        onPress={onFinish}
+        <Button
+          title={isSubmitting ? 'Finalizando…' : 'FINALIZAR REGISTRO'}
+          fullWidth
+          disabled={!canSubmit}
+          style={styles.cta}
+          onPress={onFinish}
+        />
+      </ScrollView>
+    );
+  };
+
+  return (
+    <Screen padded>
+      <ScreenHeader
+        title="CREAR CUENTA"
+        fallbackRoute="/(auth)/register-account"
+        rightIcon="notifications-outline"
       />
+      <RegisterSteps current={approvalState === 'approved' ? 3 : 2} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        {renderContent()}
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
@@ -155,4 +247,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cta: { marginBottom: Spacing.four },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.four,
+    paddingVertical: Spacing.six,
+  },
+  centerText: { textAlign: 'center' },
+  hint: { paddingHorizontal: Spacing.four },
+  iconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkBtn: { marginTop: Spacing.two },
 });

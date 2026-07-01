@@ -71,6 +71,7 @@ def validar_y_registrar_puja(
     catalogo_item_id: int,
     usuario_id: int,
     monto: Decimal,
+    retira_personalmente: bool = False,
 ) -> Puja:
     item = db.get(CatalogoItem, catalogo_item_id)
     if item is None:
@@ -151,6 +152,7 @@ def validar_y_registrar_puja(
             usuario_id=usuario_id,
             monto=Decimal(monto),
             estado=EstadoPuja.CONFIRMADA,
+            retira_personalmente=retira_personalmente,
         )
         db.add(puja)
         db.commit()

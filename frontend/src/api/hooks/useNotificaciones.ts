@@ -32,3 +32,13 @@ export function useMarcarLeida(usuarioId: number) {
     },
   });
 }
+
+/** Delete all notifications for a user; clears the list on success. */
+export function useEliminarNotificaciones(usuarioId: number) {
+  return useMutation<void, Error, void>({
+    mutationFn: () => notificacionesApi.eliminarTodasNotificaciones(usuarioId),
+    onSuccess: () => {
+      queryClient.setQueryData(queryKeys.notificaciones(usuarioId), []);
+    },
+  });
+}

@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import { pickAndUploadAsync } from '@/api/upload';
@@ -87,10 +87,13 @@ export default function RegisterAccountScreen() {
 
   return (
     <Screen padded>
-      <ScreenHeader title="CREAR CUENTA" rightIcon="notifications-outline" />
+      <ScreenHeader title="CREAR CUENTA" fallbackRoute="/(auth)/login" rightIcon="notifications-outline" />
       <RegisterSteps current={1} />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.row}>
           <View style={styles.col}>
             <Input
@@ -202,6 +205,7 @@ export default function RegisterAccountScreen() {
           .
         </ThemedText>
       </View>
+      </KeyboardAvoidingView>
 
       <Modal visible={paisOpen} transparent animationType="fade" onRequestClose={() => setPaisOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setPaisOpen(false)}>
@@ -289,6 +293,7 @@ function DniSlot({
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   content: { gap: Spacing.four, paddingTop: Spacing.five, paddingBottom: Spacing.six },
   row: { flexDirection: 'row', gap: Spacing.three },
   col: { flex: 1 },

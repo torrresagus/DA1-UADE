@@ -14,6 +14,7 @@ from app.models import (
     CategoriaUsuario,
     EstadoMedioPago,
     MedioPago,
+    Notificacion,
     Usuario,
     Venta,
 )
@@ -51,6 +52,17 @@ def recalcular_categoria(db: Session, usuario: Usuario) -> CategoriaUsuario:
             break
 
     if CATEGORIA_RANK[objetivo] > CATEGORIA_RANK[usuario.categoria]:
+        categoria_anterior = usuario.categoria
         usuario.categoria = objetivo
+        db.add(Notificacion(
+            usuario_id=usuario.id,
+            tipo="categoria",
+            titulo="¡Subiste de categoría!",
+            cuerpo=(
+                f"Pasaste de {categoria_anterior.value.capitalize()} a "
+                f"{objetivo.value.capitalize()}. "
+                "Ahora tenés acceso a más subastas exclusivas."
+            ),
+        ))
         db.commit()
     return usuario.categoria

@@ -1,9 +1,13 @@
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 
 import { num } from '@/api/types';
+import { fmtPrice } from '@/utils/format';
 import type { MultaOut, NotificacionOut } from '@/api/types';
 import { useMultasUsuario, usePagarMulta } from '@/api/hooks/useMultas';
-import { useMarcarLeida, useNotificaciones } from '@/api/hooks/useNotificaciones';
+import { useEliminarNotificaciones, useMarcarLeida, useNotificaciones } from '@/api/hooks/useNotificaciones';
+import { getNotifPrefs, type NotifPrefs } from '@/utils/notifPrefs';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -18,10 +22,32 @@ export default function NotificationsScreen() {
   const { usuarioId } = useSession();
   const multas = useMultasUsuario(usuarioId);
   const notis = useNotificaciones(usuarioId);
+  const eliminar = useEliminarNotificaciones(usuarioId ?? 0);
+  const [prefs, setPrefs] = useState<NotifPrefs>({
+    ventas: true,
+    multas: true,
+    solicitudes: true,
+    medios_pago: true,
+  });
+
+  useEffect(() => {
+    getNotifPrefs().then(setPrefs);
+  }, []);
+
+  const hasNotifs = (notis.data?.length ?? 0) > 0;
 
   const head = (
     <View style={styles.head}>
       <ThemedText type="title">Notificaciones</ThemedText>
+      {hasNotifs ? (
+        <Button
+          title={eliminar.isPending ? '…' : 'Eliminar todas'}
+          variant="ghost"
+          size="sm"
+          onPress={() => eliminar.mutate()}
+          disabled={eliminar.isPending}
+        />
+      ) : null}
     </View>
   );
 
@@ -58,8 +84,11 @@ export default function NotificationsScreen() {
     );
   }
 
-  const impagas = (multas.data ?? []).filter((m) => !m.pagada);
-  const mensajes = notis.data ?? [];
+  const impagas = prefs.multas ? (multas.data ?? []).filter((m) => !m.pagada) : [];
+  const mensajes = (notis.data ?? []).filter((n) => {
+    const tipo = n.tipo as keyof NotifPrefs;
+    return prefs[tipo] !== false;
+  });
   const isEmpty = impagas.length === 0 && mensajes.length === 0;
 
   return (
@@ -93,26 +122,42 @@ const TIPO_ICON: Record<string, IconName> = {
 function NotifCard({ noti, usuarioId }: { noti: NotificacionOut; usuarioId: number }) {
   const theme = useTheme();
   const marcar = useMarcarLeida(usuarioId);
+  const isVenta = noti.tipo === 'venta';
+
+  const handlePress = () => {
+    if (!noti.leida) marcar.mutate(noti.id);
+    if (isVenta) router.push('/history');
+  };
 
   return (
-    <Card
-      elevated
-      onPress={noti.leida ? undefined : () => marcar.mutate(noti.id)}
-      style={styles.row}>
-      <View style={[styles.icon, { backgroundColor: theme.cardElevated }]}>
-        <Icon name={TIPO_ICON[noti.tipo] ?? 'notifications'} size={18} color={theme.primary} />
-      </View>
-      <View style={styles.flex}>
-        <View style={styles.titleRow}>
-          <ThemedText type="smallBold" style={styles.flex} numberOfLines={1}>
-            {noti.titulo}
-          </ThemedText>
-          {!noti.leida ? <View style={[styles.dot, { backgroundColor: theme.primary }]} /> : null}
+    <Card elevated onPress={handlePress} style={isVenta ? styles.card : styles.row}>
+      <View style={styles.row}>
+        <View style={[styles.icon, { backgroundColor: theme.cardElevated }]}>
+          <Icon name={TIPO_ICON[noti.tipo] ?? 'notifications'} size={18} color={theme.primary} />
         </View>
-        <ThemedText type="small" themeColor="textSecondary">
-          {noti.cuerpo}
-        </ThemedText>
+        <View style={styles.flex}>
+          <View style={styles.titleRow}>
+            <ThemedText type="smallBold" style={styles.flex} numberOfLines={1}>
+              {noti.titulo}
+            </ThemedText>
+            {!noti.leida ? <View style={[styles.dot, { backgroundColor: theme.primary }]} /> : null}
+          </View>
+          <ThemedText type="small" themeColor="textSecondary">
+            {noti.cuerpo}
+          </ThemedText>
+        </View>
       </View>
+      {isVenta ? (
+        <Button
+          title="Ir a Historial para pagar"
+          fullWidth
+          size="sm"
+          onPress={() => {
+            if (!noti.leida) marcar.mutate(noti.id);
+            router.push('/history');
+          }}
+        />
+      ) : null}
     </Card>
   );
 }
@@ -144,7 +189,7 @@ function MultaCard({ multa, usuarioId }: { multa: MultaOut; usuarioId: number })
             <View style={[styles.dot, { backgroundColor: theme.primary }]} />
           </View>
           <ThemedText type="small" themeColor="textSecondary">
-            {multa.motivo} — ${num(multa.monto).toLocaleString('en-US')}
+            {multa.motivo} — ${fmtPrice(num(multa.monto))}
           </ThemedText>
           {vencimiento ? (
             <ThemedText type="caption" style={{ color: theme.warning }}>
@@ -154,7 +199,7 @@ function MultaCard({ multa, usuarioId }: { multa: MultaOut; usuarioId: number })
         </View>
       </View>
       <Button
-        title={pagar.isPending ? 'Pagando…' : `Pagar multa $${num(multa.monto).toLocaleString('en-US')}`}
+        title={pagar.isPending ? 'Pagando…' : `Pagar multa $${fmtPrice(num(multa.monto))}`}
         fullWidth
         size="sm"
         disabled={pagar.isPending}
@@ -168,7 +213,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: Spacing.four, gap: Spacing.three, paddingBottom: Spacing.seven },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.one },
-  card: { gap: Spacing.three },
+  card: { gap: Spacing.three, padding: Spacing.three },
   row: { flexDirection: 'row', gap: Spacing.three, alignItems: 'flex-start' },
   icon: {
     width: 40,

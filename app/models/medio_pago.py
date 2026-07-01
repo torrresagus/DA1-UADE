@@ -1,6 +1,7 @@
+from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Enum, ForeignKey, Numeric, String
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -22,5 +23,6 @@ class MedioPago(Base):
         Enum(EstadoMedioPago), default=EstadoMedioPago.PENDIENTE
     )
     verificado: Mapped[bool] = mapped_column(Boolean, default=False)
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     usuario = relationship("Usuario", back_populates="medios_pago")

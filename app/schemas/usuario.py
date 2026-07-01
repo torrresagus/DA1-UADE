@@ -26,6 +26,11 @@ class UsuarioAprobacion(BaseModel):
     categoria: CategoriaUsuario
 
 
+class UsuarioLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
 class UsuarioOut(ORMBase):
     id: int
     nombre: str
@@ -37,6 +42,15 @@ class UsuarioOut(ORMBase):
     estado_registro: EstadoRegistro
     bloqueado_por_impago: bool
     fecha_alta: datetime
+
+
+class CambiarPasswordPayload(BaseModel):
+    password_actual: str
+    password_nueva: str = Field(..., min_length=8)
+
+
+class CambiarEmailPayload(BaseModel):
+    email_nuevo: EmailStr
 
 
 class CuentaCobroCreate(BaseModel):

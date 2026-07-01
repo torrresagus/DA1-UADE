@@ -3,11 +3,15 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import CuentaCobro, EstadoRegistro, Usuario
+from app.services.auth import hash_password, verify_password
 from app.services.categorias import recalcular_categoria
 from app.schemas.usuario import (
+    CambiarEmailPayload,
+    CambiarPasswordPayload,
     CuentaCobroCreate,
     CuentaCobroOut,
     UsuarioAprobacion,
+    UsuarioLogin,
     UsuarioOut,
     UsuarioRegistroEtapa1,
     UsuarioRegistroEtapa2,
@@ -63,8 +67,7 @@ def registrar_etapa_2(
         raise HTTPException(
             status.HTTP_409_CONFLICT, "El usuario aún no fue aprobado en etapa 1"
         )
-    # Hash simple (placeholder); una implementación real usaría passlib.
-    usuario.password_hash = f"hashed:{payload.password}"
+    usuario.password_hash = hash_password(payload.password)
     usuario.estado_registro = EstadoRegistro.COMPLETO
     db.commit()
     db.refresh(usuario)
@@ -85,6 +88,22 @@ def recategorizar_usuario(usuario_id: int, db: Session = Depends(get_db)):
     return usuario
 
 
+@router.post(
+    "/login",
+    response_model=UsuarioOut,
+    summary="Autenticar usuario con email y contraseña",
+)
+def login(payload: UsuarioLogin, db: Session = Depends(get_db)):
+    usuario = db.query(Usuario).filter(Usuario.email == payload.email).first()
+    if usuario is None or not verify_password(payload.password, usuario.password_hash or ""):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Email o contraseña incorrectos")
+    if usuario.estado_registro != EstadoRegistro.COMPLETO:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "El registro no está completo")
+    if usuario.bloqueado_por_impago:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Cuenta suspendida por multa impaga")
+    return usuario
+
+
 @router.get("", response_model=list[UsuarioOut], summary="Listar usuarios")
 def listar_usuarios(db: Session = Depends(get_db)):
     return db.query(Usuario).all()
@@ -95,6 +114,48 @@ def obtener_usuario(usuario_id: int, db: Session = Depends(get_db)):
     usuario = db.get(Usuario, usuario_id)
     if usuario is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+    return usuario
+
+
+@router.patch(
+    "/{usuario_id}/cambiar-password",
+    response_model=UsuarioOut,
+    summary="Cambiar la contraseña del usuario",
+)
+def cambiar_password(
+    usuario_id: int, payload: CambiarPasswordPayload, db: Session = Depends(get_db)
+):
+    usuario = db.get(Usuario, usuario_id)
+    if usuario is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+    if not verify_password(payload.password_actual, usuario.password_hash or ""):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Contraseña actual incorrecta")
+    usuario.password_hash = hash_password(payload.password_nueva)
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+
+@router.patch(
+    "/{usuario_id}/cambiar-email",
+    response_model=UsuarioOut,
+    summary="Cambiar el email del usuario",
+)
+def cambiar_email(
+    usuario_id: int, payload: CambiarEmailPayload, db: Session = Depends(get_db)
+):
+    usuario = db.get(Usuario, usuario_id)
+    if usuario is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+    if (
+        db.query(Usuario)
+        .filter(Usuario.email == payload.email_nuevo, Usuario.id != usuario_id)
+        .first()
+    ):
+        raise HTTPException(status.HTTP_409_CONFLICT, "El email ya está en uso por otro usuario")
+    usuario.email = payload.email_nuevo
+    db.commit()
+    db.refresh(usuario)
     return usuario
 
 

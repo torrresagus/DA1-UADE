@@ -13,6 +13,7 @@ import type {
   SolicitudCreate,
   SolicitudOut,
   SolicitudResolucion,
+  SolicitudRespuestaUsuario,
 } from '@/api/types';
 
 /** Create a new solicitud (consignment request) for the given user. */
@@ -39,9 +40,12 @@ export function resolverSolicitud(
 }
 
 /** User accepts/rejects the proposed base price and commissions. */
-export function responderSolicitud(solicitudId: number, acepta: boolean): Promise<SolicitudOut> {
+export function responderSolicitud(
+  solicitudId: number,
+  payload: SolicitudRespuestaUsuario,
+): Promise<SolicitudOut> {
   return apiFetch<SolicitudOut>(`/solicitudes/${solicitudId}/responder`, {
     method: 'POST',
-    body: { acepta },
+    body: payload,
   });
 }

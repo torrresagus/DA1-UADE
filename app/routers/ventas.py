@@ -202,6 +202,16 @@ def listar_ventas(db: Session = Depends(get_db)):
     return db.query(Venta).all()
 
 
+@router.get("/usuario/{usuario_id}", response_model=list[VentaOut], summary="Ventas del usuario como comprador")
+def ventas_de_usuario(usuario_id: int, db: Session = Depends(get_db)):
+    return (
+        db.query(Venta)
+        .filter(Venta.comprador_id == usuario_id)
+        .order_by(Venta.fecha.desc())
+        .all()
+    )
+
+
 @router.get("/{venta_id}", response_model=VentaOut)
 def obtener_venta(venta_id: int, db: Session = Depends(get_db)):
     v = db.get(Venta, venta_id)

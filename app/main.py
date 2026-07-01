@@ -1,3 +1,5 @@
+import asyncio
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -21,9 +23,59 @@ from app.routers import (
     ventas,
     ws,
 )
+from app.services.cierre import (
+    procesar_medios_pago_pendientes,
+    procesar_multas_vencidas,
+    procesar_solicitudes_pendientes,
+    procesar_subastas_programadas,
+    procesar_subastas_vencidas,
+    procesar_usuarios_pendientes,
+    procesar_ventas_impagas,
+)
 
 # Importante para que SQLAlchemy registre todos los modelos antes de crear las tablas.
 from app import models  # noqa: F401
+
+_SCHEDULER_INTERVAL = 15  # segundos
+
+
+async def _scheduler():
+    """Revisa cada 15 s subastas vencidas y avanza solicitudes en la máquina de estados."""
+    while True:
+        await asyncio.sleep(_SCHEDULER_INTERVAL)
+        try:
+            aprobados = await asyncio.to_thread(procesar_usuarios_pendientes)
+            if aprobados:
+                print(f"[scheduler] {aprobados} usuario(s) aprobado(s) automáticamente.")
+            await asyncio.to_thread(procesar_medios_pago_pendientes)
+            await asyncio.to_thread(procesar_solicitudes_pendientes)
+            abiertas = await asyncio.to_thread(procesar_subastas_programadas)
+            if abiertas:
+                print(f"[scheduler] {abiertas} subasta(s) abierta(s) automáticamente.")
+            cerradas = await asyncio.to_thread(procesar_subastas_vencidas)
+            if cerradas:
+                print(f"[scheduler] {cerradas} subasta(s) cerrada(s) automáticamente.")
+            multas = await asyncio.to_thread(procesar_ventas_impagas)
+            if multas:
+                print(f"[scheduler] {multas} multa(s) generada(s) por impago.")
+            derivadas = await asyncio.to_thread(procesar_multas_vencidas)
+            if derivadas:
+                print(f"[scheduler] {derivadas} multa(s) derivada(s) a la justicia.")
+        except Exception as e:
+            print(f"[scheduler] Error en scheduler: {e}")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    task = asyncio.create_task(_scheduler())
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
 
 app = FastAPI(
     title=settings.app_name,
@@ -34,6 +86,7 @@ app = FastAPI(
         "ventas, multas, seguros y solicitudes de incorporación de bienes."
     ),
     contact={"name": "Equipo DA1", "email": "agustin.torres@majily.com"},
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -44,16 +97,17 @@ app.add_middleware(
 )
 
 
-@app.on_event("startup")
-def on_startup():
-    # Crea tablas automáticamente si la DB no existe (útil para desarrollo/Swagger).
-    # En producción usar Alembic: `alembic upgrade head`.
-    Base.metadata.create_all(bind=engine)
-
-
 @app.get("/health", tags=["Sistema"], summary="Healthcheck")
 def health():
-    return {"status": "ok", "app": settings.app_name}
+    return {
+        "status": "ok",
+        "app": settings.app_name,
+        "deposito_inspeccion": {
+            "nombre": settings.deposito_nombre,
+            "direccion": settings.deposito_direccion,
+            "ciudad": settings.deposito_ciudad,
+        },
+    }
 
 
 app.include_router(usuarios.router)

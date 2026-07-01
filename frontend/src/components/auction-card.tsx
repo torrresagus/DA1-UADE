@@ -8,17 +8,23 @@ import { Card } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { fmtPrice } from '@/utils/format';
+import type { Moneda } from '@/api/types';
 
 export type Auction = {
   id: string;
   title: string;
   image: string;
   currentBid: number;
+  moneda: Moneda;
   category?: string;
   status: 'live' | 'upcoming' | 'closed';
   statusLabel?: string;
   endsInLabel?: string;
   locked?: boolean;
+  esColeccion?: boolean;
+  nombreColeccion?: string | null;
+  categoriaMinima?: string;
 };
 
 const statusTone: Record<Auction['status'], BadgeTone> = {
@@ -27,8 +33,8 @@ const statusTone: Record<Auction['status'], BadgeTone> = {
   closed: 'neutral',
 };
 
-function formatPrice(value: number) {
-  return '$' + value.toLocaleString('en-US');
+function formatPrice(value: number, moneda: Moneda) {
+  return '$' + fmtPrice(value) + ' ' + moneda;
 }
 
 type AuctionCardProps = {
@@ -69,6 +75,13 @@ export function AuctionCard({ auction, onPress, onBid }: AuctionCardProps) {
         <ThemedText type="heading" numberOfLines={1}>
           {auction.title}
         </ThemedText>
+        {auction.esColeccion ? (
+          <Badge
+            label={auction.nombreColeccion ?? 'Colección'}
+            tone="upcoming"
+            style={styles.collectionBadge}
+          />
+        ) : null}
         <View style={styles.bidRow}>
           <View>
             <ThemedText type="caption" themeColor="textSecondary">
@@ -82,7 +95,7 @@ export function AuctionCard({ auction, onPress, onBid }: AuctionCardProps) {
                 </ThemedText>
               </View>
             ) : (
-              <ThemedText type="price">{formatPrice(auction.currentBid)}</ThemedText>
+              <ThemedText type="price">{formatPrice(auction.currentBid, auction.moneda)}</ThemedText>
             )}
           </View>
           <Button
@@ -130,4 +143,5 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   lockRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one, marginTop: 2 },
+  collectionBadge: { alignSelf: 'flex-start' },
 });

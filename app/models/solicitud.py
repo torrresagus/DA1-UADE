@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, Text
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -22,6 +22,7 @@ class SolicitudSubasta(Base):
     # Si no se acreditó el origen lícito, la empresa debe revisar/avisar a las autoridades.
     revisar_origen: Mapped[bool] = mapped_column(Boolean, default=False)
     acepta_devolucion_con_cargo: Mapped[bool] = mapped_column(Boolean, default=False)
+    cantidad_elementos: Mapped[int] = mapped_column(Integer, default=1)
     estado: Mapped[EstadoSolicitud] = mapped_column(Enum(EstadoSolicitud), default=EstadoSolicitud.INGRESADA)
     motivo_rechazo: Mapped[str | None] = mapped_column(Text, default=None)
     precio_base_propuesto: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), default=None)

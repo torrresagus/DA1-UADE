@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { num } from '@/api/types';
+import { fmtPrice } from '@/utils/format';
 import { useMetricasUsuario } from '@/api/hooks/useMetricas';
 import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/ui/card';
@@ -51,7 +52,7 @@ function MetricsContent({
     {
       icon: 'cash-outline',
       label: 'Total gastado',
-      value: '$' + num(m.importe_pagado).toLocaleString('en-US'),
+      value: '$' + fmtPrice(num(m.importe_pagado)),
     },
     { icon: 'trophy-outline', label: 'Subastas ganadas', value: String(m.subastas_ganadas) },
     { icon: 'hammer-outline', label: 'Pujas', value: String(m.cantidad_pujas) },
@@ -62,7 +63,7 @@ function MetricsContent({
     {
       icon: 'pricetag-outline',
       label: 'Importe ofertado',
-      value: '$' + num(m.importe_ofertado).toLocaleString('en-US'),
+      value: '$' + fmtPrice(num(m.importe_ofertado)),
     },
     {
       icon: 'calendar-outline',
@@ -117,8 +118,8 @@ function MetricsContent({
                   {c.cantidad_pujas} pujas · {c.subastas_ganadas} ganadas
                 </ThemedText>
                 <ThemedText type="small">
-                  Ofertado ${num(c.importe_ofertado).toLocaleString('en-US')} · Pagado $
-                  {num(c.importe_pagado).toLocaleString('en-US')}
+                  Ofertado ${fmtPrice(num(c.importe_ofertado))} · Pagado $
+                  {fmtPrice(num(c.importe_pagado))}
                 </ThemedText>
               </View>
             </View>

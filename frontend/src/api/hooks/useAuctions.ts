@@ -41,6 +41,7 @@ export function useAuctions(opts: { usuarioCategoria?: CategoriaUsuario | null }
   const { usuarioCategoria } = opts;
   return useQuery<Auction[]>({
     queryKey: queryKeys.lots(),
+    refetchInterval: 30_000,
     queryFn: async () => {
       const [subastas, articulos] = await Promise.all([
         subastasApi.listSubastas(),
@@ -72,6 +73,7 @@ export function useAuctionDetail(
   return useQuery<AuctionDetailVM>({
     queryKey: queryKeys.lot(catalogoItemId),
     enabled: Number.isFinite(catalogoItemId) && catalogoItemId > 0,
+    refetchInterval: LIVE_REFETCH_MS,
     queryFn: async () => {
       const subastas = await subastasApi.listSubastas();
 

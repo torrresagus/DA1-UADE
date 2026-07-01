@@ -270,6 +270,7 @@ export interface PujaCreate {
   catalogo_item_id: number;
   usuario_id: number;
   monto: number;
+  retira_personalmente?: boolean;
 }
 
 export interface PujaOut {
@@ -345,6 +346,7 @@ export interface SolicitudCreate {
   declara_propiedad: boolean;
   origen_licito_acreditado: boolean;
   acepta_devolucion_con_cargo: boolean;
+  cantidad_elementos?: number;
   imagenes?: ImagenSolicitudCreate[];
 }
 
@@ -365,6 +367,10 @@ export interface SolicitudOut {
   respuesta_usuario?: boolean | null;
   fecha: string;
   imagenes: ImagenSolicitudOut[];
+  /** Populated by backend when estado = confirmada_por_usuario */
+  articulo_nro_pieza: string | null;
+  nro_poliza: string | null;
+  ubicacion_subasta: string | null;
 }
 
 export interface SolicitudResolucion {
@@ -373,6 +379,12 @@ export interface SolicitudResolucion {
   precio_base_propuesto?: Money | null;
   comision_propuesta?: Money | null;
   fecha_subasta_propuesta?: string | null;
+}
+
+export interface SolicitudRespuestaUsuario {
+  acepta: boolean;
+  categoria_minima?: CategoriaUsuario;
+  iniciar_inmediatamente?: boolean;
 }
 
 // ─── Rematadores ────────────────────────────────────────────────────────────

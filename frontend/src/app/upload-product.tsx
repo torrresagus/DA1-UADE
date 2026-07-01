@@ -1,11 +1,13 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
+import { fmtMoneyInput } from '@/utils/format';
 import { PRODUCT_CATEGORIES } from '@/api/categories';
-import { pickAndUploadAsync } from '@/api/upload';
+import type { Moneda } from '@/api/types';
+import { pickAndUploadMultipleAsync } from '@/api/upload';
 import { useCrearSolicitud } from '@/api/hooks/useSolicitudes';
 import type { SolicitudCreate } from '@/api/types';
 import { ScreenHeader } from '@/components/screen-header';
@@ -29,14 +31,18 @@ export default function UploadProductScreen() {
   const { usuarioId } = useSession();
   const crear = useCrearSolicitud(usuarioId!);
 
-  const [form, setForm] = useState({ title: '', price: '', description: '' });
+  const [form, setForm] = useState({ title: '', price: '', description: '', cantidad: '' });
+  const [esMultiple, setEsMultiple] = useState(false);
+  const [moneda, setMoneda] = useState<Moneda>('ARS');
   const [category, setCategory] = useState<string>(PRODUCT_CATEGORIES[0]);
   const [images, setImages] = useState<string[]>([]);
   const [declaraPropiedad, setDeclaraPropiedad] = useState(false);
   const [aceptaDevolucion, setAceptaDevolucion] = useState(false);
   const [origenLicito, setOrigenLicito] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -52,16 +58,21 @@ export default function UploadProductScreen() {
   }
 
   const addPhoto = async () => {
-    if (images.length >= MAX_IMAGES || uploading) return;
+    const remaining = MAX_IMAGES - images.length;
+    if (remaining <= 0 || uploading) return;
     setUploading(true);
+    setUploadProgress(null);
     setError(null);
     try {
-      const url = await pickAndUploadAsync();
-      if (url) setImages((prev) => [...prev, url]);
+      const urls = await pickAndUploadMultipleAsync(remaining, (done, total) => {
+        setUploadProgress({ done, total });
+      });
+      if (urls.length) setImages((prev) => [...prev, ...urls]);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo subir la imagen.');
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -69,18 +80,21 @@ export default function UploadProductScreen() {
 
   const submit = async () => {
     setError(null);
-    const { title, price, description } = form;
+    const { title, price, description, cantidad } = form;
     const descripcion =
       (title ? title + ' — ' : '') +
       description +
-      (price ? ' (precio sugerido: ' + price + ')' : '');
+      (price ? ` (precio sugerido: ${price} ${moneda})` : '');
+
+    const cantidadElementos = esMultiple ? Math.max(2, parseInt(cantidad) || 2) : 1;
 
     const body: SolicitudCreate = {
       descripcion,
-      datos_historicos: null,
+      datos_historicos: category,
       declara_propiedad: declaraPropiedad,
       origen_licito_acreditado: origenLicito,
       acepta_devolucion_con_cargo: aceptaDevolucion,
+      cantidad_elementos: cantidadElementos,
       imagenes: images.map((url, i) => ({ url, orden: i + 1 })),
     };
 
@@ -95,7 +109,14 @@ export default function UploadProductScreen() {
   return (
     <Screen padded>
       <ScreenHeader title="Cargar producto" />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled">
         <Pressable
           onPress={addPhoto}
           disabled={uploading || images.length >= MAX_IMAGES}
@@ -104,11 +125,13 @@ export default function UploadProductScreen() {
             <Icon name={uploading ? 'cloud-upload-outline' : 'camera-outline'} size={28} color={theme.primary} />
           </View>
           <ThemedText type="smallBold">
-            {uploading
-              ? 'Subiendo…'
-              : images.length
-                ? `${images.length} de ${MAX_IMAGES} fotos`
-                : 'Agregar fotos'}
+            {uploadProgress
+              ? `Subiendo ${uploadProgress.done} de ${uploadProgress.total}…`
+              : uploading
+                ? 'Subiendo…'
+                : images.length
+                  ? `${images.length} de ${MAX_IMAGES} fotos`
+                  : 'Agregar fotos'}
           </ThemedText>
           <ThemedText
             type="caption"
@@ -167,12 +190,40 @@ export default function UploadProductScreen() {
 
         <Input
           label="Precio sugerido"
-          placeholder="$0"
+          placeholder="0"
           keyboardType="numeric"
           value={form.price}
-          onChangeText={set('price')}
+          onChangeText={(t) => set('price')(fmtMoneyInput(t))}
           leading={<Icon name="pricetag-outline" size={18} color={theme.textSecondary} />}
         />
+        <View style={styles.section}>
+          <ThemedText type="caption" themeColor="textSecondary">
+            Moneda del precio sugerido
+          </ThemedText>
+          <View style={styles.cats}>
+            {(['ARS', 'USD'] as const).map((m) => {
+              const active = moneda === m;
+              return (
+                <Pressable
+                  key={m}
+                  onPress={() => setMoneda(m)}
+                  style={[
+                    styles.cat,
+                    {
+                      backgroundColor: active ? theme.primary : theme.cardElevated,
+                      borderColor: active ? theme.primary : theme.border,
+                    },
+                  ]}>
+                  <ThemedText
+                    type="smallBold"
+                    style={{ color: active ? theme.onPrimary : theme.textSecondary }}>
+                    {m === 'ARS' ? 'ARS (Pesos)' : 'USD (Dólares)'}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
         <Input
           label="Descripción"
           placeholder="Describe el estado, año, procedencia..."
@@ -181,7 +232,31 @@ export default function UploadProductScreen() {
           style={styles.textArea}
           value={form.description}
           onChangeText={set('description')}
+          onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150)}
         />
+
+        <View style={styles.section}>
+          <ThemedText type="caption" themeColor="textSecondary">
+            Cantidad de elementos
+          </ThemedText>
+          <CheckRow
+            label="Este producto está formado por más de un elemento (ej: juego de 18 piezas)"
+            checked={esMultiple}
+            onToggle={() => {
+              setEsMultiple((v) => !v);
+              if (esMultiple) setForm((f) => ({ ...f, cantidad: '' }));
+            }}
+          />
+          {esMultiple ? (
+            <Input
+              label="¿Cuántos elementos?"
+              placeholder="2"
+              keyboardType="numeric"
+              value={form.cantidad}
+              onChangeText={(t) => setForm((f) => ({ ...f, cantidad: t.replace(/\D/g, '') }))}
+            />
+          ) : null}
+        </View>
 
         <View style={styles.section}>
           <ThemedText type="caption" themeColor="textSecondary">
@@ -210,6 +285,7 @@ export default function UploadProductScreen() {
           </ThemedText>
         ) : null}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <Button
         title="Publicar para revisión"
@@ -253,6 +329,7 @@ function CheckRow({
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   content: { gap: Spacing.four, paddingVertical: Spacing.four, paddingBottom: Spacing.six },
   upload: {
     borderWidth: 1.5,

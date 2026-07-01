@@ -17,3 +17,8 @@ export function listNotificaciones(usuarioId: number): Promise<NotificacionOut[]
 export function marcarLeida(notificacionId: number): Promise<NotificacionOut> {
   return apiFetch<NotificacionOut>(`/notificaciones/${notificacionId}/leer`, { method: 'POST' });
 }
+
+/** Delete all notifications for a user. */
+export function eliminarTodasNotificaciones(usuarioId: number): Promise<void> {
+  return apiFetch<void>(`/usuarios/${usuarioId}/notificaciones`, { method: 'DELETE' });
+}

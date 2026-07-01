@@ -33,6 +33,7 @@ export const queryKeys = {
   pujasItem: (catalogoItemId: number) => ['pujas-item', catalogoItemId] as const,
   pujasUsuario: (usuarioId: number) => ['pujas-usuario', usuarioId] as const,
   ventas: () => ['ventas'] as const,
+  ventasUsuario: (id: number) => ['ventas-usuario', id] as const,
   multas: (usuarioId: number) => ['multas', usuarioId] as const,
   solicitudes: () => ['solicitudes'] as const,
   solicitud: (id: number) => ['solicitud', id] as const,

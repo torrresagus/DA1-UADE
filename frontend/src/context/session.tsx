@@ -1,19 +1,20 @@
 /**
  * SessionContext — the client-side identity layer.
  *
- * The backend has NO authentication: the integer `usuario_id` IS the identity.
- * "Login" can only look a user up by email (GET /usuarios) — no password is
- * ever verified server-side. We persist the resolved user under a single
- * AsyncStorage key so the app re-hydrates on boot.
+ * Login calls POST /usuarios/login (server verifies email + bcrypt password).
+ * The resolved user is persisted under a single AsyncStorage key so the app
+ * re-hydrates on boot. The integer `usuario_id` is the identity for all
+ * subsequent API calls.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { findUsuarioByEmail, getUsuario } from '@/api/endpoints/usuarios';
+import { loginUsuario, getUsuario } from '@/api/endpoints/usuarios';
 import type { UsuarioOut } from '@/api/types';
 
 const STORAGE_KEY = 'bidify.session';
+const GUEST_KEY = 'bidify.guest';
 
 export type SessionStatus = 'restoring' | 'authed' | 'anon';
 
@@ -30,12 +31,14 @@ type SessionValue = {
   usuario: UsuarioOut | null;
   usuarioId: number | null;
   status: SessionStatus;
-  /** Resolve a user by email (password is cosmetic — no server verification exists). */
+  isGuest: boolean;
   login: (email: string, password: string) => Promise<UsuarioOut>;
   /** Establish the session from an already-fetched user (e.g. after registration). */
   adoptUser: (usuario: UsuarioOut) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  enterGuestMode: () => Promise<void>;
+  exitGuestMode: () => Promise<void>;
 };
 
 const SessionContext = createContext<SessionValue | null>(null);
@@ -43,6 +46,7 @@ const SessionContext = createContext<SessionValue | null>(null);
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<UsuarioOut | null>(null);
   const [status, setStatus] = useState<SessionStatus>('restoring');
+  const [isGuest, setIsGuest] = useState(false);
 
   const persist = useCallback(async (u: UsuarioOut | null) => {
     if (u) await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(u));
@@ -53,12 +57,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     let active = true;
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        const [raw, guestRaw] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEY),
+          AsyncStorage.getItem(GUEST_KEY),
+        ]);
         if (!active) return;
         if (raw) {
           setUsuario(JSON.parse(raw) as UsuarioOut);
           setStatus('authed');
         } else {
+          if (guestRaw === 'true') setIsGuest(true);
           setStatus('anon');
         }
       } catch {
@@ -80,11 +88,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   );
 
   const login = useCallback(
-    async (email: string, _password: string) => {
-      const found = await findUsuarioByEmail(email);
-      if (!found) {
-        throw new AuthError('email_not_found', 'No existe una cuenta con ese email.');
-      }
+    async (email: string, password: string) => {
+      const found = await loginUsuario(email, password);
       await adoptUser(found);
       return found;
     },
@@ -94,8 +99,21 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     setUsuario(null);
     setStatus('anon');
-    await persist(null);
+    setIsGuest(false);
+    await Promise.all([persist(null), AsyncStorage.removeItem(GUEST_KEY)]);
   }, [persist]);
+
+  const enterGuestMode = useCallback(async () => {
+    setUsuario(null);
+    setStatus('anon');
+    setIsGuest(true);
+    await AsyncStorage.setItem(GUEST_KEY, 'true');
+  }, []);
+
+  const exitGuestMode = useCallback(async () => {
+    setIsGuest(false);
+    await AsyncStorage.removeItem(GUEST_KEY);
+  }, []);
 
   const refreshUser = useCallback(async () => {
     if (!usuario) return;
@@ -112,12 +130,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       usuario,
       usuarioId: usuario?.id ?? null,
       status,
+      isGuest,
       login,
       adoptUser,
       logout,
       refreshUser,
+      enterGuestMode,
+      exitGuestMode,
     }),
-    [usuario, status, login, adoptUser, logout, refreshUser],
+    [usuario, status, isGuest, login, adoptUser, logout, refreshUser, enterGuestMode, exitGuestMode],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

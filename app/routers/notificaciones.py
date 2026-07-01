@@ -47,3 +47,13 @@ def marcar_leida(notificacion_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(n)
     return n
+
+
+@router.delete(
+    "/usuarios/{usuario_id}/notificaciones",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Eliminar todas las notificaciones del usuario",
+)
+def eliminar_notificaciones(usuario_id: int, db: Session = Depends(get_db)):
+    db.query(Notificacion).filter(Notificacion.usuario_id == usuario_id).delete()
+    db.commit()

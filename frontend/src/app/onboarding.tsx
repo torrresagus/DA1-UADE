@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
+import { useSession } from '@/context/session';
 import { useTheme } from '@/hooks/use-theme';
 
 const ONBOARDING_SEEN_KEY = 'bidify.onboardingSeen';
@@ -14,6 +15,7 @@ const hero = require('@/assets/images/logo-glow.png');
 
 export default function WelcomeScreen() {
   const theme = useTheme();
+  const { enterGuestMode } = useSession();
 
   const markSeen = () => AsyncStorage.setItem(ONBOARDING_SEEN_KEY, 'true').catch(() => {});
 
@@ -25,6 +27,12 @@ export default function WelcomeScreen() {
   const onHaveAccount = async () => {
     await markSeen();
     router.replace('/(auth)/login');
+  };
+
+  const onGuest = async () => {
+    await markSeen();
+    await enterGuestMode();
+    router.replace('/(tabs)/home');
   };
 
   return (
@@ -53,6 +61,12 @@ export default function WelcomeScreen() {
           fullWidth
           style={{ borderColor: theme.primaryDim }}
           onPress={onHaveAccount}
+        />
+        <Button
+          title="Continuar como invitado"
+          variant="ghost"
+          fullWidth
+          onPress={onGuest}
         />
       </View>
     </Screen>

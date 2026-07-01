@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
 import { num } from '@/api/types';
+import { fmtPrice } from '@/utils/format';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -19,7 +20,7 @@ export default function ResultScreen() {
     status?: string;
   }>();
   const montoN = num(monto);
-  const montoLabel = `$${montoN.toLocaleString('en-US')}`;
+  const montoLabel = `$${fmtPrice(montoN)}`;
 
   return (
     <Screen padded>
