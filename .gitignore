@@ -9,3 +9,11 @@ venv/
 .vscode/
 *.egg-info/
 media/
+
+# Archivos personales / académicos
+.claude/
+Resumen.md
+Consignas_TPO.pdf
+Correcciones entrega 2 - Grupo 13.pdf
+Enunciado.md
+explicacion.md
