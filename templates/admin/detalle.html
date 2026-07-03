@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solicitud #{{ s.id }} — Admin Bidify</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #141923; min-height: 100vh; }
+    header { background: #141923; color: #E9C349; padding: 16px 32px; display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 1.2rem; font-weight: 700; }
+    .container { max-width: 900px; margin: 32px auto; padding: 0 24px; display: flex; flex-direction: column; gap: 20px; }
+    .back { display: inline-flex; align-items: center; gap: 6px; color: #6b7280; text-decoration: none; font-size: 0.9rem; font-weight: 500; margin-bottom: 4px; }
+    .back:hover { color: #141923; }
+
+    .card { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 24px; }
+    .card-title { font-size: 1rem; font-weight: 700; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 10px; }
+
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+    .badge-yellow { background: #fef3c7; color: #92400e; }
+    .badge-gray   { background: #f3f4f6; color: #6b7280; }
+    .badge-green  { background: #d1fae5; color: #065f46; }
+    .badge-red    { background: #fee2e2; color: #991b1b; }
+    .badge-blue   { background: #dbeafe; color: #1e40af; }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .info-row { display: flex; flex-direction: column; gap: 2px; }
+    .info-row label { font-size: 0.75rem; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+    .info-row span { font-size: 0.92rem; font-weight: 500; }
+
+    .text-block { background: #f8f9fa; border-radius: 8px; padding: 14px; font-size: 0.9rem; line-height: 1.6; color: #374151; white-space: pre-wrap; word-break: break-word; }
+
+    .flags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .flag { padding: 5px 12px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; }
+    .flag-ok  { background: #d1fae5; color: #065f46; }
+    .flag-no  { background: #fee2e2; color: #991b1b; }
+    .flag-warn { background: #fef3c7; color: #92400e; }
+
+    .images { display: flex; flex-wrap: wrap; gap: 10px; }
+    .images img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 1.5px solid #e5e7eb; cursor: pointer; transition: transform 0.15s; }
+    .images img:hover { transform: scale(1.05); }
+
+    /* Form styles */
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.82rem; font-weight: 600; color: #374151; }
+    .form-group input, .form-group textarea { padding: 10px 12px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 0.92rem; font-family: inherit; color: #141923; background: #fff; transition: border-color 0.15s; }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #E9C349; }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-hint { font-size: 0.78rem; color: #9ca3af; }
+
+    .section-sep { height: 1px; background: #f3f4f6; margin: 8px 0; }
+
+    .actions { display: flex; gap: 12px; margin-top: 8px; }
+    .btn { padding: 11px 24px; border-radius: 8px; font-size: 0.92rem; font-weight: 700; cursor: pointer; border: none; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #E9C349; color: #141923; }
+    .btn-danger  { background: #ef4444; color: #fff; }
+    .btn-ghost   { background: transparent; color: #6b7280; border: 1.5px solid #d1d5db; }
+
+    .divider { display: flex; align-items: center; gap: 12px; color: #9ca3af; font-size: 0.8rem; margin: 8px 0; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e5e7eb; }
+
+    .resolved-box { border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .resolved-box.accepted { background: #d1fae5; border: 1px solid #6ee7b7; }
+    .resolved-box.rejected { background: #fee2e2; border: 1px solid #fca5a5; }
+    .resolved-box strong { font-size: 0.95rem; }
+    .resolved-box .detail { font-size: 0.88rem; color: #374151; }
+
+    /* Lightbox simple */
+    #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999; align-items: center; justify-content: center; }
+    #lightbox.open { display: flex; }
+    #lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+    #lightbox-close { position: absolute; top: 16px; right: 24px; color: #fff; font-size: 2rem; cursor: pointer; line-height: 1; }
+  </style>
+</head>
+<body>
+  <header>
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="14" fill="#E9C349" opacity=".2"/><path d="M8 18l4-8 4 8" stroke="#E9C349" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="10" r="1.5" fill="#E9C349"/></svg>
+    <h1>Bidify — Panel de Administración</h1>
+  </header>
+
+  <div class="container">
+    <a href="/admin" class="back">← Volver a la lista</a>
+
+    <!-- Encabezado -->
+    <div class="card">
+      <div class="card-title">
+        Solicitud #{{ s.id }}
+        {% if s.estado.value == 'en_inspeccion' %}
+          <span class="badge badge-yellow">En inspección</span>
+        {% elif s.estado.value == 'ingresada' %}
+          <span class="badge badge-gray">Ingresada</span>
+        {% elif s.estado.value == 'aceptada' %}
+          <span class="badge badge-blue">Aceptada — esperando respuesta del usuario</span>
+        {% elif s.estado.value == 'rechazada' %}
+          <span class="badge badge-red">Rechazada</span>
+        {% elif s.estado.value == 'confirmada_por_usuario' %}
+          <span class="badge badge-green">Confirmada por el usuario</span>
+        {% elif s.estado.value == 'rechazada_por_usuario' %}
+          <span class="badge badge-gray">Rechazada por el usuario</span>
+        {% endif %}
+      </div>
+
+      <div class="grid2" style="margin-bottom:16px">
+        <div class="info-row">
+          <label>Usuario ID</label>
+          <span>{{ s.usuario_id }}</span>
+        </div>
+        <div class="info-row">
+          <label>Fecha de ingreso</label>
+          <span>{% if s.fecha %}{{ s.fecha.strftime('%d/%m/%Y %H:%M') }}{% else %}—{% endif %}</span>
+        </div>
+        <div class="info-row">
+          <label>Cantidad de elementos</label>
+          <span>{{ s.cantidad_elementos }}</span>
+        </div>
+        <div class="info-row">
+          <label>Categoría declarada</label>
+          <span>{{ s.datos_historicos or '—' }}</span>
+        </div>
+      </div>
+
+      <div class="flags">
+        <span class="flag {% if s.declara_propiedad %}flag-ok{% else %}flag-no{% endif %}">
+          {% if s.declara_propiedad %}✓{% else %}✗{% endif %} Declara propiedad
+        </span>
+        <span class="flag {% if s.acepta_devolucion_con_cargo %}flag-ok{% else %}flag-no{% endif %}">
+          {% if s.acepta_devolucion_con_cargo %}✓{% else %}✗{% endif %} Acepta devolución con cargo
+        </span>
+        <span class="flag {% if s.origen_licito_acreditado %}flag-ok{% else %}flag-warn{% endif %}">
+          {% if s.origen_licito_acreditado %}✓ Origen lícito acreditado{% else %}⚠ Origen NO acreditado{% endif %}
+        </span>
+        {% if s.revisar_origen %}
+        <span class="flag flag-warn">⚠ Requiere revisión de origen</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Descripción -->
+    <div class="card">
+      <div class="card-title">Descripción del bien</div>
+      <div class="text-block">{{ s.descripcion or 'Sin descripción.' }}</div>
+    </div>
+
+    <!-- Fotos -->
+    {% if s.imagenes %}
+    <div class="card">
+      <div class="card-title">Fotos ({{ s.imagenes|length }})</div>
+      <div class="images">
+        {% for img in s.imagenes|sort(attribute='orden') %}
+        <img src="{{ img.url }}" alt="Foto {{ img.orden }}" onclick="openLightbox(this.src)" loading="lazy">
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Resolución ya aplicada -->
+    {% if s.estado.value in ['aceptada', 'rechazada', 'confirmada_por_usuario', 'rechazada_por_usuario'] %}
+    <div class="card">
+      <div class="card-title">Resolución aplicada</div>
+      {% if s.estado.value in ['aceptada', 'confirmada_por_usuario'] %}
+      <div class="resolved-box accepted">
+        <strong>✓ Aceptada por la empresa</strong>
+        <div class="detail">Precio base propuesto: <strong>${{ '{:,.0f}'.format(s.precio_base_propuesto|float) if s.precio_base_propuesto else '—' }}</strong></div>
+        <div class="detail">Comisión: <strong>${{ '{:,.2f}'.format(s.comision_propuesta|float) if s.comision_propuesta else '—' }}</strong></div>
+        <div class="detail">Fecha de subasta propuesta: <strong>{% if s.fecha_subasta_propuesta %}{{ s.fecha_subasta_propuesta.strftime('%d/%m/%Y %H:%M') }}{% else %}—{% endif %}</strong></div>
+        {% if s.estado.value == 'confirmada_por_usuario' %}
+        <div class="detail" style="margin-top:4px;color:#065f46;font-weight:600">El usuario aceptó las condiciones. El bien ya está en subasta.</div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="resolved-box rejected">
+        <strong>✗ Rechazada por la empresa</strong>
+        <div class="detail">Motivo: {{ s.motivo_rechazo or 'Sin especificar' }}</div>
+        {% if s.estado.value == 'rechazada_por_usuario' %}
+        <div class="detail" style="margin-top:4px;font-weight:600">El usuario también rechazó la propuesta.</div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Formulario de resolución (solo si está en inspección) -->
+    {% if s.estado.value == 'en_inspeccion' %}
+    <div class="card">
+      <div class="card-title">Resolver solicitud</div>
+      <p style="font-size:0.88rem;color:#6b7280;margin-bottom:16px">
+        Completá los campos y elegí <strong>Aceptar</strong> para enviar la propuesta al usuario,
+        o <strong>Rechazar</strong> si el bien no cumple los requisitos.
+      </p>
+
+      <form method="post" action="/admin/solicitudes/{{ s.id }}/resolver" id="resolverForm">
+        <input type="hidden" name="accion" id="accion_field" value="aceptar">
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="grid2">
+            <div class="form-group">
+              <label for="precio">Precio base propuesto ($)</label>
+              <input type="number" id="precio" name="precio_base_propuesto"
+                     value="{{ precio_sugerido }}" min="0" step="100" required>
+              <span class="form-hint">Sugerido según descripción del usuario</span>
+            </div>
+            <div class="form-group">
+              <label for="comision">Comisión ($)</label>
+              <input type="number" id="comision" name="comision_propuesta"
+                     value="{{ comision_sugerida }}" min="0" step="0.01">
+              <span class="form-hint">Default: 10% del precio base</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="fecha">Fecha y hora de la subasta</label>
+            <input type="datetime-local" id="fecha" name="fecha_subasta_propuesta"
+                   value="{{ fecha_sugerida }}" required>
+          </div>
+
+          <div class="section-sep"></div>
+          <div class="divider">o rechazar</div>
+
+          <div class="form-group">
+            <label for="motivo">Motivo de rechazo</label>
+            <textarea id="motivo" name="motivo_rechazo"
+                      placeholder="Describí por qué el bien no fue aceptado..."></textarea>
+            <span class="form-hint">Solo requerido si seleccionás Rechazar</span>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:20px">
+          <button type="submit" class="btn btn-primary"
+                  onclick="document.getElementById('accion_field').value='aceptar'">
+            ✓ Aceptar bien
+          </button>
+          <button type="submit" class="btn btn-danger"
+                  onclick="document.getElementById('accion_field').value='rechazar'">
+            ✗ Rechazar bien
+          </button>
+          <a href="/admin" class="btn btn-ghost">Cancelar</a>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox">
+    <span id="lightbox-close" onclick="closeLightbox()">×</span>
+    <img id="lightbox-img" src="" alt="Foto ampliada">
+  </div>
+
+  <script>
+    function openLightbox(src) {
+      document.getElementById('lightbox-img').src = src;
+      document.getElementById('lightbox').classList.add('open');
+    }
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open');
+    }
+    document.getElementById('lightbox').addEventListener('click', function(e) {
+      if (e.target === this) closeLightbox();
+    });
+
+    // Auto-calcular comisión al cambiar el precio
+    const precioInput = document.getElementById('precio');
+    const comisionInput = document.getElementById('comision');
+    if (precioInput && comisionInput) {
+      precioInput.addEventListener('input', function() {
+        const p = parseFloat(this.value) || 0;
+        comisionInput.value = (p * 0.10).toFixed(2);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -255,34 +255,6 @@ def procesar_solicitudes_pendientes() -> int:
             ))
             avanzadas += 1
 
-        # EN_INSPECCION → ACEPTADA: pasaron 60s desde la creación (30s más en inspección).
-        en_inspeccion = (
-            db.query(SolicitudSubasta)
-            .filter(
-                SolicitudSubasta.estado == EstadoSolicitud.EN_INSPECCION,
-                SolicitudSubasta.fecha <= ahora - _TIMER_SOLICITUD * 2,
-            )
-            .all()
-        )
-        for sol in en_inspeccion:
-            precio = _extraer_precio(sol.descripcion)
-            comision = (precio * Decimal("0.10")).quantize(Decimal("0.01"))
-            sol.estado = EstadoSolicitud.ACEPTADA
-            sol.precio_base_propuesto = precio
-            sol.comision_propuesta = comision
-            sol.fecha_subasta_propuesta = ahora + timedelta(minutes=2)
-            db.add(Notificacion(
-                usuario_id=sol.usuario_id,
-                tipo="solicitud",
-                titulo="¡Tu bien fue evaluado!",
-                cuerpo=(
-                    f"Valor base propuesto: ${precio:,.0f}, "
-                    f"comisión: ${comision:,.2f}. "
-                    "Ingresá a la app para aceptar o rechazar las condiciones."
-                ),
-            ))
-            avanzadas += 1
-
         if avanzadas:
             db.commit()
         return avanzadas

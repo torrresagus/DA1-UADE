@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import Base, engine
 from app.routers import (
+    admin,
     articulos,
     medios_pago,
     metricas,
@@ -110,6 +111,7 @@ def health():
     }
 
 
+app.include_router(admin.router)
 app.include_router(usuarios.router)
 app.include_router(medios_pago.router)
 app.include_router(rematadores.router)
