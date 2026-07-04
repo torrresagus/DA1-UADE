@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 *.db
+!seed.db
 *.sqlite3
 .env
 .venv/

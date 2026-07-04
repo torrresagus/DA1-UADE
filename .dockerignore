@@ -1,6 +1,6 @@
 .git/
 .env
-*.db
+subastas.db
 media/
 frontend/
 node_modules/
