@@ -121,36 +121,37 @@ for (ci_id, comprador, monto, fecha) in ventas:
 
 # ── Imagenes ──────────────────────────────────────────────────────────────────
 # 3 images per articulo, stable picsum.photos URLs
+BASE = "https://images.unsplash.com/photo-{}?w=800&q=80"
 img_sets = {
-    art_ids[0]: [  # Violin
-        ("https://picsum.photos/id/1062/800/600", 1),
-        ("https://picsum.photos/id/1048/800/600", 2),
-        ("https://picsum.photos/id/160/800/600",  3),
+    art_ids[0]: [  # Violin Stradivarius
+        (BASE.format("1612225330812-01a9c6b355ec"), 1),
+        (BASE.format("1624367171718-14026220ee35"), 2),
+        (BASE.format("1492563817904-5f1dc687974f"), 3),
     ],
     art_ids[1]: [  # Monedas romanas
-        ("https://picsum.photos/id/669/800/600",  1),
-        ("https://picsum.photos/id/667/800/600",  2),
-        ("https://picsum.photos/id/665/800/600",  3),
+        (BASE.format("1718140245037-8d02a29e425e"), 1),
+        (BASE.format("1680396761982-0bdd9675af35"), 2),
+        (BASE.format("1672945690877-5307346cde57"), 3),
     ],
-    art_ids[2]: [  # Leica M3
-        ("https://picsum.photos/id/250/800/600",  1),
-        ("https://picsum.photos/id/251/800/600",  2),
-        ("https://picsum.photos/id/252/800/600",  3),
+    art_ids[2]: [  # Cámara Leica M3
+        (BASE.format("1649342609352-45b14364650a"), 1),
+        (BASE.format("1466553359530-7387151ec321"), 2),
+        (BASE.format("1649342609020-abb97337c6d2"), 3),
     ],
-    art_ids[3]: [  # Omega
-        ("https://picsum.photos/id/378/800/600",  1),
-        ("https://picsum.photos/id/379/800/600",  2),
-        ("https://picsum.photos/id/380/800/600",  3),
+    art_ids[3]: [  # Reloj Omega Seamaster
+        (BASE.format("1677445166019-4fa91a090e49"), 1),
+        (BASE.format("1605544906466-6d3268a268bd"), 2),
+        (BASE.format("1556453007-ee036169934b"),   3),
     ],
-    art_ids[4]: [  # Gramófono
-        ("https://picsum.photos/id/117/800/600",  1),
-        ("https://picsum.photos/id/119/800/600",  2),
-        ("https://picsum.photos/id/120/800/600",  3),
+    art_ids[4]: [  # Gramófono Edison
+        (BASE.format("1518893883800-45cd0954574b"), 1),
+        (BASE.format("1635264349913-219c2229483b"), 2),
+        (BASE.format("1781719398272-6b119fdc6afa"), 3),
     ],
     art_ids[5]: [  # Porcelana Ming
-        ("https://picsum.photos/id/447/800/600",  1),
-        ("https://picsum.photos/id/449/800/600",  2),
-        ("https://picsum.photos/id/450/800/600",  3),
+        (BASE.format("1776332514405-557bf85af096"), 1),
+        (BASE.format("1723779232054-6f6be572c0e8"), 2),
+        (BASE.format("1770354227649-059bbfc475db"), 3),
     ],
 }
 
