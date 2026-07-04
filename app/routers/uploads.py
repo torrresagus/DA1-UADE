@@ -9,7 +9,9 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile, status
 
-MEDIA_DIR = Path("media")
+from app.config import settings
+
+MEDIA_DIR = Path(settings.media_dir)
 ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic"}
 MAX_BYTES = 8 * 1024 * 1024  # 8 MB
 

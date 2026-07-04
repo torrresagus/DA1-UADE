@@ -129,6 +129,6 @@ app.include_router(uploads.router)
 app.include_router(ws.router)
 
 # Storage local de imágenes subidas (DNI, fotos de artículos/solicitudes).
-_MEDIA_DIR = Path("media")
-_MEDIA_DIR.mkdir(exist_ok=True)
+_MEDIA_DIR = Path(settings.media_dir)
+_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/media", StaticFiles(directory=str(_MEDIA_DIR)), name="media")
