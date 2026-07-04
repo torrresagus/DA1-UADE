@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useMultasUsuario, usePagarMulta } from '@/api/hooks/useMultas';
 import type { MultaOut } from '@/api/types';
 import { num } from '@/api/types';
-import { fmtPrice } from '@/utils/format';
+import { fmtPrice, parseUtcDate } from '@/utils/format';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
@@ -20,7 +20,7 @@ import { useTheme } from '@/hooks/use-theme';
 function multaStatus(m: MultaOut): { label: string; tone: BadgeTone } {
   if (m.derivada_justicia) return { label: 'Derivada a justicia', tone: 'danger' };
   if (m.pagada) return { label: 'Pagada', tone: 'success' };
-  if (m.fecha_vencimiento && new Date(m.fecha_vencimiento) < new Date()) {
+  if (m.fecha_vencimiento && parseUtcDate(m.fecha_vencimiento) < new Date()) {
     return { label: 'Vencida', tone: 'danger' };
   }
   return { label: 'Pendiente', tone: 'gold' };
@@ -28,7 +28,7 @@ function multaStatus(m: MultaOut): { label: string; tone: BadgeTone } {
 
 function shortDate(iso: string | null | undefined): string {
   if (!iso) return '—';
-  const d = new Date(iso);
+  const d = parseUtcDate(iso);
   if (Number.isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('es-AR');
 }

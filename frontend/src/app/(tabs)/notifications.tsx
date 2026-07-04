@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { num } from '@/api/types';
-import { fmtPrice } from '@/utils/format';
+import { fmtPrice, parseUtcDate } from '@/utils/format';
 import type { MultaOut, NotificacionOut } from '@/api/types';
 import { useMultasUsuario, usePagarMulta } from '@/api/hooks/useMultas';
 import { useEliminarNotificaciones, useMarcarLeida, useNotificaciones } from '@/api/hooks/useNotificaciones';
@@ -167,7 +167,7 @@ function MultaCard({ multa, usuarioId }: { multa: MultaOut; usuarioId: number })
   const pagar = usePagarMulta(usuarioId);
 
   const vencimiento = multa.fecha_vencimiento
-    ? new Date(multa.fecha_vencimiento).toLocaleString('es-AR', {
+    ? parseUtcDate(multa.fecha_vencimiento).toLocaleString('es-AR', {
         day: '2-digit',
         month: '2-digit',
         hour: '2-digit',

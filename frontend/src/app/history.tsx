@@ -5,7 +5,7 @@ import { useBidHistoryVM } from '@/api/hooks/usePujas';
 import { useVentasUsuario, usePagarVenta } from '@/api/hooks/useMultas';
 import { num } from '@/api/types';
 import type { VentaOut } from '@/api/types';
-import { fmtPrice } from '@/utils/format';
+import { fmtPrice, parseUtcDate } from '@/utils/format';
 import type { BidStatus } from '@/api/hooks/usePujas';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
@@ -38,7 +38,7 @@ const META: Record<BidStatus, { label: string; tone: BadgeTone }> = {
 
 /** Format an ISO timestamp as a short es-AR date; guard invalid values. */
 function formatDate(iso: string): string {
-  const date = new Date(iso);
+  const date = parseUtcDate(iso);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleDateString('es-AR');
 }

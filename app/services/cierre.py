@@ -227,42 +227,8 @@ def procesar_medios_pago_pendientes() -> int:
 
 
 def procesar_solicitudes_pendientes() -> int:
-    """Avanza solicitudes por la máquina de estados simulada. Retorna cuántas avanzaron."""
-    db = SessionLocal()
-    try:
-        ahora = datetime.utcnow()
-        avanzadas = 0
-
-        # INGRESADA → EN_INSPECCION: pasaron 30s desde la creación.
-        ingresadas = (
-            db.query(SolicitudSubasta)
-            .filter(
-                SolicitudSubasta.estado == EstadoSolicitud.INGRESADA,
-                SolicitudSubasta.fecha <= ahora - _TIMER_SOLICITUD,
-            )
-            .all()
-        )
-        for sol in ingresadas:
-            sol.estado = EstadoSolicitud.EN_INSPECCION
-            db.add(Notificacion(
-                usuario_id=sol.usuario_id,
-                tipo="solicitud",
-                titulo="Tu bien está siendo inspeccionado",
-                cuerpo=(
-                    "Nuestros expertos verificarán su autenticidad "
-                    "y estado de conservación. Te avisamos cuando tengamos novedades."
-                ),
-            ))
-            avanzadas += 1
-
-        if avanzadas:
-            db.commit()
-        return avanzadas
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
+    """Reservado: la transición INGRESADA → EN_INSPECCION es ahora manual desde el panel admin."""
+    return 0
 
 
 def procesar_ventas_impagas() -> int:

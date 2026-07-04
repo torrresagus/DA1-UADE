@@ -16,6 +16,7 @@ export type Auction = {
   title: string;
   image: string;
   currentBid: number;
+  bidLabel?: string;
   moneda: Moneda;
   category?: string;
   status: 'live' | 'upcoming' | 'closed';
@@ -85,7 +86,7 @@ export function AuctionCard({ auction, onPress, onBid }: AuctionCardProps) {
         <View style={styles.bidRow}>
           <View>
             <ThemedText type="caption" themeColor="textSecondary">
-              {auction.locked ? 'Acceso restringido' : 'Puja actual'}
+              {auction.locked ? 'Acceso restringido' : (auction.bidLabel ?? 'Puja actual')}
             </ThemedText>
             {auction.locked ? (
               <View style={styles.lockRow}>

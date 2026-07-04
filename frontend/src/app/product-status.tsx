@@ -7,7 +7,7 @@ import { useMisSolicitudes, useResponderSolicitud, useSolicitud } from '@/api/ho
 import { useDepositoInspeccion } from '@/api/hooks/useEmpresaInfo';
 import type { CategoriaUsuario, EstadoSolicitud, SolicitudOut } from '@/api/types';
 import { num } from '@/api/types';
-import { fmtPrice } from '@/utils/format';
+import { fmtPrice, parseUtcDate } from '@/utils/format';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
@@ -75,7 +75,7 @@ const ESTADO_DESC: Record<EstadoSolicitud, string> = {
 
 function shortDate(iso: string | null | undefined): string {
   if (!iso) return '—';
-  const d = new Date(iso);
+  const d = parseUtcDate(iso);
   if (Number.isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('es-AR');
 }

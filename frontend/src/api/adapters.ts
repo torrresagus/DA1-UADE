@@ -20,6 +20,7 @@ import {
   num,
   SubastaOut,
 } from '@/api/types';
+import { parseUtcDate } from '@/utils/format';
 
 export type LotStatus = 'live' | 'upcoming' | 'closed';
 
@@ -60,8 +61,7 @@ export function computeLocked(
 }
 
 function formatDate(iso: string): string {
-  // Avoid locale surprises across platforms; show DD/MM HH:mm.
-  const d = new Date(iso);
+  const d = parseUtcDate(iso);
   if (Number.isNaN(d.getTime())) return '';
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -82,6 +82,23 @@ function firstImage(articulo: ArticuloOut | undefined): string {
   return articulo?.imagenes?.[0]?.url ?? 'https://placehold.co/600x400?text=Sin+imagen';
 }
 
+/**
+ * Strips the upload-form noise from articulo.descripcion:
+ *   "Título — Descripción real (precio sugerido: 100.000 ARS)" → "Descripción real"
+ */
+function cleanTitle(raw: string | undefined | null): string | undefined {
+  if (!raw) return undefined;
+  let s = raw;
+  // Remove leading "Title — " prefix (em-dash or regular hyphen)
+  const emDash = s.indexOf(' — ');
+  const hyphen = s.indexOf(' - ');
+  if (emDash >= 0) s = s.slice(emDash + 3);
+  else if (hyphen >= 0) s = s.slice(hyphen + 3);
+  // Remove trailing " (precio sugerido: ...)" suffix
+  s = s.replace(/\s*\(precio sugerido:[^)]*\)/i, '').trim();
+  return s || undefined;
+}
+
 /** Map a single catalogo item to the Auction card VM. */
 export function toLotCard(
   subasta: SubastaOut,
@@ -99,9 +116,10 @@ export function toLotCard(
 
   return {
     id: String(item.id),
-    title: articulo?.descripcion ?? articulo?.numero_pieza ?? `Lote #${item.id}`,
+    title: cleanTitle(articulo?.descripcion) ?? articulo?.numero_pieza ?? `Lote #${item.id}`,
     image: firstImage(articulo),
     currentBid,
+    bidLabel: mejor?.mejor_monto != null ? 'Puja actual' : 'Precio base',
     moneda: subasta.moneda,
     category: inferCategory(searchText),
     status: item.vendido ? 'closed' : status,
@@ -176,7 +194,7 @@ export function toAuctionDetailVM(
     catalogoItemId: item.id,
     subastaId: subasta.id,
     articuloId: item.articulo_id,
-    title: articulo?.descripcion ?? articulo?.numero_pieza ?? `Lote #${item.id}`,
+    title: cleanTitle(articulo?.descripcion) ?? articulo?.numero_pieza ?? `Lote #${item.id}`,
     numeroPieza: articulo?.numero_pieza ?? '',
     images: images.length ? images : [firstImage(articulo)],
     description: articulo?.historia ?? articulo?.descripcion ?? '',

@@ -10,6 +10,8 @@
     header { background: #141923; color: #E9C349; padding: 16px 32px; display: flex; align-items: center; gap: 12px; }
     header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.5px; }
     header span { font-size: 0.8rem; color: #888; margin-left: auto; }
+    .logout-btn { margin-left: auto; font-size: 0.8rem; color: #9ca3af; text-decoration: none; padding: 6px 14px; border: 1px solid #2a3347; border-radius: 8px; transition: background 0.15s, color 0.15s; }
+    .logout-btn:hover { background: #e5e7eb; color: #141923; border-color: #e5e7eb; }
     .container { max-width: 1100px; margin: 32px auto; padding: 0 24px; }
     h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 20px; }
 
@@ -47,13 +49,17 @@
 </head>
 <body>
   <header>
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="14" fill="#E9C349" opacity=".2"/><path d="M8 18l4-8 4 8" stroke="#E9C349" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="10" r="1.5" fill="#E9C349"/></svg>
     <h1>Bidify — Panel de Administración</h1>
-    <span>usuario: admin</span>
+    <a href="/admin/logout" class="logout-btn">Cerrar sesión</a>
   </header>
 
   <div class="container">
-    <h2>Solicitudes de subasta</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <h2 style="margin-bottom:0">Solicitudes de subasta</h2>
+      <button onclick="window.location.reload()" class="btn" style="font-size:0.82rem;padding:8px 16px;display:flex;align-items:center;gap:6px">
+        <span style="font-size:1rem;line-height:1">↺</span> Actualizar
+      </button>
+    </div>
 
     <nav class="tabs">
       {% for key, label in estados_filtro %}
@@ -91,8 +97,8 @@
             <td>{{ s.usuario_id }}</td>
             <td>
               {% if s.fecha %}
-                {{ s.fecha.strftime('%d/%m/%Y') }}<br>
-                <small style="color:#9ca3af">{{ s.fecha.strftime('%H:%M') }}</small>
+                {{ (s.fecha | to_ba).strftime('%d/%m/%Y') }}<br>
+                <small style="color:#9ca3af">{{ (s.fecha | to_ba).strftime('%H:%M') }}</small>
               {% else %}—{% endif %}
             </td>
             <td>{{ s.cantidad_elementos }}</td>
