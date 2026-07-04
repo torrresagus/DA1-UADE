@@ -161,34 +161,8 @@ def _extraer_precio(descripcion: str | None) -> Decimal:
 
 
 def procesar_usuarios_pendientes() -> int:
-    """Aprueba automáticamente usuarios en PENDIENTE_VERIFICACION que llevan +30s. Retorna cuántos aprobó."""
-    db = SessionLocal()
-    try:
-        ahora = datetime.utcnow()
-        pendientes = (
-            db.query(Usuario)
-            .filter(
-                Usuario.estado_registro == EstadoRegistro.PENDIENTE_VERIFICACION,
-                Usuario.fecha_alta <= ahora - _TIMER_SOLICITUD,
-            )
-            .all()
-        )
-        for usuario in pendientes:
-            usuario.estado_registro = EstadoRegistro.APROBADO_FASE_1
-            db.add(Notificacion(
-                usuario_id=usuario.id,
-                tipo="registro",
-                titulo="¡Tu identidad fue verificada!",
-                cuerpo="Tu documentación fue aprobada. Ya podés ingresar a la app y crear tu contraseña.",
-            ))
-        if pendientes:
-            db.commit()
-        return len(pendientes)
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
+    """Aprobación manual desde el panel admin — no hace nada automáticamente."""
+    return 0
 
 
 def procesar_medios_pago_pendientes() -> int:

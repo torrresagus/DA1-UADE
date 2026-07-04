@@ -11,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import EstadoSolicitud, SolicitudSubasta
+from app.models import EstadoRegistro, EstadoSolicitud, SolicitudSubasta, Usuario
 from app.routers.notificaciones import crear_notificacion
 
 _ADMIN_USER = "admin"
@@ -34,6 +34,13 @@ _templates = Jinja2Templates(
 _templates.env.filters["to_ba"] = _to_ba
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
+
+_ESTADOS_CUENTAS_FILTRO = [
+    ("pendiente", "Pendientes de aprobación"),
+    ("aprobadas", "Aprobadas (fase 1)"),
+    ("completas", "Completas"),
+    ("bloqueadas", "Bloqueadas"),
+]
 
 _ESTADOS_FILTRO = [
     ("ingresada", "Recién ingresadas"),
@@ -253,3 +260,89 @@ def admin_resolver(
 
     db.commit()
     return RedirectResponse(url="/admin", status_code=303)
+
+
+# ── Cuentas ───────────────────────────────────────────────────────────────────
+
+_ESTADO_REGISTRO_MAP = {
+    "pendiente":  EstadoRegistro.PENDIENTE_VERIFICACION,
+    "aprobadas":  EstadoRegistro.APROBADO_FASE_1,
+    "completas":  EstadoRegistro.COMPLETO,
+    "bloqueadas": EstadoRegistro.BLOQUEADO,
+}
+
+
+@router.get("/cuentas", response_class=HTMLResponse)
+def admin_cuentas(
+    request: Request,
+    estado: str | None = None,
+    db: Session = Depends(get_db),
+    _: None = Depends(_check_admin),
+):
+    estado_filtro = estado or "pendiente"
+    estado_enum = _ESTADO_REGISTRO_MAP.get(estado_filtro)
+    if estado_enum:
+        usuarios = (
+            db.query(Usuario)
+            .filter(Usuario.estado_registro == estado_enum)
+            .filter(Usuario.id != 5)  # excluir empresa interna
+            .order_by(Usuario.fecha_alta.desc())
+            .all()
+        )
+    else:
+        usuarios = []
+    return _templates.TemplateResponse(
+        "admin/cuentas.html",
+        {
+            "request": request,
+            "usuarios": usuarios,
+            "estado_filtro": estado_filtro,
+            "estados_filtro": _ESTADOS_CUENTAS_FILTRO,
+        },
+    )
+
+
+@router.post("/usuarios/{usuario_id}/aprobar")
+def admin_aprobar_usuario(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(_check_admin),
+):
+    u = db.get(Usuario, usuario_id)
+    if u is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+    if u.estado_registro != EstadoRegistro.PENDIENTE_VERIFICACION:
+        return RedirectResponse(url="/admin/cuentas", status_code=303)
+    u.estado_registro = EstadoRegistro.APROBADO_FASE_1
+    crear_notificacion(
+        db,
+        usuario_id=u.id,
+        tipo="registro",
+        titulo="¡Tu identidad fue verificada!",
+        cuerpo="Tu documentación fue aprobada. Ya podés ingresar a la app y crear tu contraseña.",
+    )
+    db.commit()
+    return RedirectResponse(url="/admin/cuentas", status_code=303)
+
+
+@router.post("/usuarios/{usuario_id}/rechazar")
+def admin_rechazar_usuario(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(_check_admin),
+):
+    u = db.get(Usuario, usuario_id)
+    if u is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+    if u.estado_registro != EstadoRegistro.PENDIENTE_VERIFICACION:
+        return RedirectResponse(url="/admin/cuentas", status_code=303)
+    u.estado_registro = EstadoRegistro.BLOQUEADO
+    crear_notificacion(
+        db,
+        usuario_id=u.id,
+        tipo="registro",
+        titulo="Tu solicitud de registro fue rechazada",
+        cuerpo="Tu documentación no pudo ser verificada. Contactate con soporte para más información.",
+    )
+    db.commit()
+    return RedirectResponse(url="/admin/cuentas", status_code=303)
