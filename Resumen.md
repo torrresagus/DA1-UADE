@@ -1,7 +1,7 @@
 # Bidify — Resumen completo del proyecto
 
 > **Instrucción para Claude:** Leé este archivo al comienzo de cada sesión para tener contexto completo del proyecto sin necesidad de analizar el código fuente.
-> **Última actualización:** 2026-07-04 (sesión 2)
+> **Última actualización:** 2026-07-04 (sesión 3)
 
 ---
 
@@ -11,7 +11,7 @@
 - **Alumno:** Kevin Alajarin (alajarinkevin@hotmail.com)
 - **Proyecto:** Trabajo práctico grupal — app móvil de subastas llamada **Bidify**
 - **Entregas:** 3 etapas (wireframes/API → 50% funcional → 100% funcional + desplegado)
-- **Estado actual (2026-07-04):** todas las funcionalidades implementadas y probadas, panel de admin web implementado, pendiente deploy del backend
+- **Estado actual (2026-07-04):** backend deployado en Fly.io, APK Android generado con EAS Build, panel admin con gestión de cuentas y productos
 
 ---
 
@@ -23,14 +23,27 @@ DA1-UADE/
 ├── frontend/             # Frontend móvil (Expo / React Native)
 ├── alembic/              # Migraciones de base de datos
 ├── templates/            # Templates HTML del panel de admin
-│   └── admin/            # lista.html, detalle.html, login.html
-├── seed.py               # Datos de prueba
-├── local.bat             # Script para correr todo en Windows
-├── Makefile              # Comandos útiles
-└── subastas.db           # Base de datos SQLite (dev)
+│   └── admin/            # lista.html, detalle.html, login.html, cuentas.html
+├── seed_demo.py          # Script que insertó las 5 subastas demo
+├── fix_images.py         # Script que actualizó imágenes a URLs Unsplash correctas
+├── seed.db               # DB pre-cargada con datos demo (copiada al volumen en primer boot)
+├── Dockerfile            # Imagen Docker para Fly.io
+├── fly.toml              # Configuración de Fly.io
+├── .dockerignore         # Excluye subastas.db local, media/, frontend/, etc.
+└── subastas.db           # Base de datos SQLite (dev local)
 ```
 
-**Cómo correr:**
+### Producción (Fly.io)
+- **Backend:** `https://bidify-da1.fly.dev`
+- **Admin:** `https://bidify-da1.fly.dev/admin`
+- **Volumen persistente:** `bidify_data` montado en `/data` (región `gru` — São Paulo)
+  - `/data/subastas.db` — base de datos SQLite
+  - `/data/media/` — imágenes subidas por usuarios
+- **Primer boot:** el CMD del Dockerfile copia `seed.db` a `/data/subastas.db` si el volumen está vacío
+- **APK Android:** generado con EAS Build (perfil `preview`), conecta directo a `https://bidify-da1.fly.dev`
+  - Build ID: `de56afb7-a0a9-4a3f-96ec-d058adbee1de` (EAS / @kevin100301/bidify)
+
+### Desarrollo local
 - Backend: `python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`
 - Frontend: `cd frontend && npx expo start`
 - Todo junto (Windows): `local.bat`
@@ -44,22 +57,23 @@ DA1-UADE/
 - **SQLAlchemy 2.0** (Mapped/mapped_column) · **Alembic** (migraciones en `alembic/versions/`)
 - **SQLite** por defecto (configurable vía `.env` con `DATABASE_URL`)
 - **WebSocket** nativo de FastAPI para pujas en tiempo real
-- Storage de imágenes: `./media/` servido como StaticFiles en `/media`
+- Storage de imágenes: `/data/media/` en producción, `./media/` en dev — servido como StaticFiles en `/media`
 - Scheduler automático cada 15 segundos (en `main.py`)
 - **Jinja2** para el panel de administración web (`/admin`)
 
 ### Frontend
-- **Expo SDK 54** (bajado de 56 por compatibilidad con Expo Go) · React Native 0.85
-- **expo-router** (file-based routing) · TypeScript
+- **Expo SDK 54** · React Native 0.81.5 · TypeScript
+- **expo-router** (file-based routing)
 - **@tanstack/react-query** para data fetching y caché
 - **@react-native-async-storage/async-storage** para persistir sesión
 - **@expo/vector-icons** (Ionicons)
-- Variables de entorno: `EXPO_PUBLIC_API_URL`
-- Base URL: web/iOS → `localhost:8000`; Android emulador → `10.0.2.2:8000`; dispositivo físico → IP LAN del host
+- Variable de entorno: `EXPO_PUBLIC_API_URL=https://bidify-da1.fly.dev` (en `.env` y `eas.json`)
+- WebSocket: `API_BASE_URL.replace(/^http/, 'ws')` → `wss://bidify-da1.fly.dev`
 
 ### Configuración backend (`app/config.py`)
-- `empresa_email`: "empresa@bidify.local" (usuario que compra lotes sin pujas)
-- `database_url`: "sqlite:///./subastas.db"
+- `empresa_email`: "empresa@bidify.local" (usuario id=5 que compra lotes sin pujas)
+- `database_url`: `sqlite:////data/subastas.db` en producción
+- `media_dir`: `/data/media` en producción
 
 ---
 
@@ -158,10 +172,14 @@ Notificacion:  id, usuario_id, tipo, titulo, cuerpo, leida, fecha
 
 ### Panel de Administración (`/admin`)
 - `GET /admin/login` · `POST /admin/login` → autenticación con cookie (usuario: `admin`, clave: `bidify2026`)
-- `GET /admin/logout` → elimina la cookie y redirige al login
-- `GET /admin` → lista de solicitudes filtrable por estado (default: recién ingresadas)
+- `GET /admin/logout`
+- `GET /admin` → sección **Productos** (solicitudes de subasta, filtrable por estado)
 - `GET /admin/solicitudes/{id}` → detalle con fotos, flags y formulario de resolución
-- `POST /admin/solicitudes/{id}/resolver` → acepta (con precio, comisión, fecha) o rechaza (con motivo)
+- `POST /admin/solicitudes/{id}/iniciar-inspeccion` → INGRESADA → EN_INSPECCION (manual)
+- `POST /admin/solicitudes/{id}/resolver` → acepta (precio, comisión, fecha) o rechaza (motivo)
+- `GET /admin/cuentas` → sección **Cuentas** (usuarios, filtrable: pendiente/aprobadas/completas/bloqueadas)
+- `POST /admin/usuarios/{id}/aprobar` → PENDIENTE_VERIFICACION → APROBADO_FASE_1 + notif
+- `POST /admin/usuarios/{id}/rechazar` → PENDIENTE_VERIFICACION → BLOQUEADO + notif
 
 ### Notificaciones
 - `GET /usuarios/{id}/notificaciones` · `POST /notificaciones/{id}/leer`
@@ -181,7 +199,7 @@ Notificacion:  id, usuario_id, tipo, titulo, cuerpo, leida, fecha
 
 | Función | Condición | Acción |
 |---|---|---|
-| `procesar_usuarios_pendientes()` | estado=PENDIENTE_VERIFICACION, +15s | → APROBADO_FASE_1 + notif |
+| `procesar_usuarios_pendientes()` | **no-op** — aprobación **manual** desde `/admin/cuentas` | retorna 0 |
 | `procesar_subastas_programadas()` | estado=PROGRAMADA, fecha_hora≤ahora | → ABIERTA, fecha_hora += **2min** |
 | `procesar_subastas_vencidas()` | estado=ABIERTA, fecha_hora≤ahora | → CERRADA, genera Ventas |
 | `procesar_medios_pago_pendientes()` | estado=PENDIENTE, +15s | → VERIFICADO |
@@ -191,10 +209,10 @@ Notificacion:  id, usuario_id, tipo, titulo, cuerpo, leida, fecha
 
 ### Tiempos de espera (demo rápida)
 
-| Proceso | Tiempo | Constante |
+| Proceso | Tiempo | Notas |
 |---|---|---|
-| Registro (etapa 1) | **15 segundos** | `_TIMER_SOLICITUD` |
-| Verificación medio de pago | **15 segundos** | `_TIMER_SOLICITUD` |
+| Registro (etapa 1) → aprobación | **Manual** — admin hace clic en `/admin/cuentas` | era 15s automático, ahora manual |
+| Verificación medio de pago | **15 segundos** | automático vía scheduler |
 | Solicitud: INGRESADA → EN_INSPECCION | **Manual** — admin hace clic "Iniciar inspección" en `/admin` | — |
 | Solicitud: EN_INSPECCION → ACEPTADA | **Manual** — admin completa precio/comisión/fecha y acepta | — |
 | Venta impaga → Multa | **1 minuto** | `_TIMER_IMPAGO` |
@@ -236,7 +254,7 @@ frontend/src/app/
 ├── (auth)/
 │   ├── login.tsx                # KeyboardAvoidingView corregido (behavior 'height' en Android)
 │   ├── register-account.tsx     # Etapa 1: datos personales + DNI (KeyboardAvoidingView corregido)
-│   └── register-finish.tsx      # Etapa 2: clave, polling auto cada 5s para APROBADO_FASE_1 (KeyboardAvoidingView corregido)
+│   └── register-finish.tsx      # Etapa 2: clave, polling auto cada 5s para APROBADO_FASE_1
 ├── (tabs)/
 │   ├── home.tsx                 # Listado de subastas con filtros (refetch cada 30s)
 │   ├── profile.tsx
@@ -291,7 +309,7 @@ La app es **multi-moneda**. Cada subasta tiene su propio campo `moneda` (ARS o U
 
 ## 11. Flujo completo de uso (para pruebas)
 
-1. **Registro:** etapa 1 (datos + DNI) → esperar ~15s (scheduler auto-aprueba) → etapa 2 (clave)
+1. **Registro:** etapa 1 (datos + DNI) → admin entra a `https://bidify-da1.fly.dev/admin/cuentas` → aprueba la cuenta → usuario recibe notificación → etapa 2 (clave)
 2. **Medios de pago:** agregar uno → esperar ~15s (scheduler auto-verifica)
 3. **Ver subastas:** home muestra lotes en vivo, próximos, cerrados con filtros
 4. **Sala en vivo:** countdown hasta `fecha_hora`, botón Pujar con rango válido
@@ -299,7 +317,7 @@ La app es **multi-moneda**. Cada subasta tiene su propio campo `moneda` (ARS o U
 6. **Cierre automático:** scheduler cierra subasta a los 2 minutos de abierta
 7. **Pagar compra:** Notificaciones → botón "Ir a Historial para pagar" → sección "Compras pendientes de pago" → botón "Pagar compra"
 8. **Si no paga en 1min:** scheduler genera multa → ir a Multas (o Notificaciones) → pagar multa
-9. **Subir bien:** upload-product (con selector moneda y checkbox multi-elemento) → solicitud (INGRESADA) → **admin entra a `localhost:8000/admin`**, tab "Recién ingresadas" → Ver → botón "Iniciar inspección" (pasa a EN_INSPECCION) → tab "Pendientes de revisión" → Ver → completa precio/comisión/fecha (en hora local GMT-3) → Aceptar → solicitud pasa a ACEPTADA → usuario ve la propuesta en product-status y acepta (con checkbox "iniciar ya")
+9. **Subir bien:** upload-product → solicitud (INGRESADA) → **admin entra a `https://bidify-da1.fly.dev/admin`**, pestaña **Productos** → tab "Recién ingresadas" → Ver → "Iniciar inspección" → tab "Pendientes de revisión" → Ver → completar precio/comisión/fecha (en hora local GMT-3) → Aceptar → solicitud pasa a ACEPTADA → usuario acepta en product-status (con checkbox "iniciar ya")
 10. **Métricas:** tab Métricas muestra estadísticas de participación
 
 ---
@@ -314,7 +332,8 @@ La app es **multi-moneda**. Cada subasta tiene su propio campo `moneda` (ARS o U
 | **Pujas válidas** | Rango: última oferta +1% a +20% sobre precio base. Sin límite superior en oro/platino. |
 | **1 subasta por usuario** | No puede conectarse a más de una subasta simultáneamente (WebSocket). |
 | **Multas** | 10% del monto, 72hs para pagar, deriva a justicia si no. Bloquea para pujar. |
-| **Sin pujas** | La empresa (empresa@bidify.local) compra al precio base al cierre. |
+| **Sin pujas** | La empresa (empresa@bidify.local, id=5) compra al precio base al cierre. |
+| **Registro flow** | PENDIENTE_VERIFICACION → **APROBADO_FASE_1** (manual, admin en `/admin/cuentas`) → COMPLETO (usuario completa etapa 2) |
 | **Solicitud flow** | INGRESADA → EN_INSPECCION (**manual**, admin hace clic "Iniciar inspección") → ACEPTADA o RECHAZADA (manual, admin via `/admin`) |
 | **Seguro automático** | Al aceptar solicitud, se genera seguro con `nro_poliza=POL-SOL-{id}` |
 | **iniciar_inmediatamente** | Si el usuario lo marca al aceptar propuesta, la subasta se crea ABIERTA con 2min de ventana |
@@ -325,20 +344,47 @@ La app es **multi-moneda**. Cada subasta tiene su propio campo `moneda` (ARS o U
 
 ## 13. Panel de Administración Web
 
-- **URL:** `http://localhost:8000/admin` (o el dominio deployado)
+- **URL producción:** `https://bidify-da1.fly.dev/admin`
 - **Credenciales:** usuario `admin`, contraseña `bidify2026` (hardcodeadas en `app/routers/admin.py`)
 - **Auth:** cookie HTTP-only `bidify_admin_token` (hash SHA-256 de las credenciales). Sin cookie válida redirige al login.
-- **Templates:** `templates/admin/login.html`, `lista.html`, `detalle.html` — Jinja2, sin dependencias externas
-- **Flujo admin:** entrar al panel → tab "Recién ingresadas" → Ver → botón "Iniciar inspección" → aparece en "Pendientes de revisión" → Ver → completar precio/comisión/fecha → Aceptar o Rechazar
-- **Detalle:** el precio base se pre-llena extrayendo `(precio sugerido: X)` de la descripción; la comisión se auto-calcula al 10% y es editable; el JS del formulario recalcula la comisión al cambiar el precio
-- **Botón Actualizar:** recarga la lista sin F5 (útil al esperar nuevas solicitudes)
-- **Horarios:** el filtro Jinja2 `to_ba` convierte todos los datetimes UTC → GMT-3 para mostrar. `fecha_sugerida` se genera en hora local. El formulario envía hora local y el backend le suma 3h para guardar en UTC, manteniendo consistencia con el scheduler
-- **Estado rechazada\_por\_usuario:** muestra la propuesta aceptada por la empresa + nota de rechazo del usuario (no dice "rechazada por la empresa")
-- **Endpoint extra:** `POST /admin/solicitudes/{id}/iniciar-inspeccion` — transición manual INGRESADA → EN\_INSPECCION
+- **Templates:** `templates/admin/login.html`, `lista.html`, `detalle.html`, `cuentas.html` — Jinja2, sin dependencias externas
+
+### Sección Productos (`/admin`)
+- Solicitudes de subasta filtradas por estado: Recién ingresadas / Pendientes de revisión / Aceptadas / Rechazadas / Confirmadas / Rechazadas por usuario
+- **Flujo:** tab "Recién ingresadas" → Ver → "Iniciar inspección" → aparece en "Pendientes de revisión" → Ver → completar precio/comisión/fecha → Aceptar o Rechazar
+- El precio base se pre-llena extrayendo `(precio sugerido: X)` de la descripción; la comisión se auto-calcula al 10%
+
+### Sección Cuentas (`/admin/cuentas`)
+- Lista de usuarios filtrada por estado: Pendientes de aprobación / Aprobadas (fase 1) / Completas / Bloqueadas
+- Muestra: nombre, email, país/domicilio, fecha de alta, links al DNI (frente/dorso), estado
+- **Botones (solo en "Pendientes"):** ✓ Aprobar → APROBADO_FASE_1 + notif | ✗ Rechazar → BLOQUEADO + notif
+- Excluye al usuario empresa (id=5) de la lista
+
+### Comportamiento general
+- **Botón Actualizar:** recarga la lista sin F5
+- **Horarios:** filtro Jinja2 `to_ba` convierte todos los datetimes UTC → GMT-3 para mostrar
+- **Formulario de resolución:** ingresa hora local (GMT-3), backend le suma 3h para guardar en UTC
+- **Estado rechazada\_por\_usuario:** muestra la propuesta aceptada por la empresa + nota de rechazo del usuario
 
 ---
 
-## 14. Gotchas y bugs conocidos (LEER ANTES DE TOCAR)
+## 14. Datos demo (producción)
+
+Subastas cargadas en Fly.io:
+
+| ID | Nombre | Categoría | Estado | Producto |
+|---|---|---|---|---|
+| 1 | Subasta de Arte y Colección — Rango Oro | ORO | PROGRAMADA (2026-07-08) | Reloj Omega Seamaster |
+| 2 | Subasta de Relojes y Fotografía | COMUN | PROGRAMADA (2026-07-09) | Cámara Leica M3 |
+| 3 | Subasta de Instrumentos Musicales | COMUN | PROGRAMADA (2026-07-10) | Violín Stradivarius |
+| 4 | Gran Subasta de Antigüedades — Rango Platino | PLATINO | CERRADA (2026-07-01) | Porcelana Ming |
+| 5 | Subasta de Porcelana y Fonógrafos | COMUN | CERRADA (2026-07-02) | Monedas romanas + Gramófono |
+
+Imágenes: URLs de Unsplash verificadas que coinciden con cada producto (3 fotos por artículo).
+
+---
+
+## 15. Gotchas y bugs conocidos (LEER ANTES DE TOCAR)
 
 ### SQLite + datetimes con 'T' vs espacio
 - **El bug:** SQLAlchemy 2.x guarda datetimes con espacio (`2026-07-01 18:34:51`), pero datos históricos en la DB pueden tener `T` (`2026-07-01T18:34:51`). SQLite compara como texto y `'T'` (ASCII 84) > `' '` (ASCII 32), por lo que fechas con `T` parecen estar en el futuro.
@@ -367,40 +413,85 @@ La app es **multi-moneda**. Cada subasta tiene su propio campo `moneda` (ARS o U
 - `login.tsx`, `register-account.tsx` y `register-finish.tsx` usan `behavior={Platform.OS === 'ios' ? 'padding' : 'height'}`.
 - En Android, `undefined` no hace nada — siempre usar `'height'`.
 
----
-
-## 15. Seed de datos de prueba (`seed.py`)
-
-Usuarios demo (contraseña: `demo1234`):
-| Email | Categoría |
-|---|---|
-| ana@example.com | PLATA |
-| luis@example.com | ORO |
-| sofia@example.com | PLATINO |
-
-Subastas seed: fechas en julio 2026 para que no venzan durante el desarrollo.
+### package-lock.json debe estar sincronizado
+- EAS Build usa `npm ci` internamente. Si el lock file está desactualizado (falta algún paquete transitivo), el build falla con "Unknown error in Install dependencies".
+- **Fix:** borrar `node_modules/` y `package-lock.json`, correr `npm install` para regenerar, commitear el lock file nuevo.
 
 ---
 
-## 16. Design system
+## 16. Deploy — Fly.io
+
+```bash
+# Instalar flyctl (solo primera vez)
+iwr https://fly.io/install.ps1 -useb | iex
+$env:PATH += ";$env:USERPROFILE\.fly\bin"
+
+# Login
+flyctl auth login
+
+# Crear app y volumen (solo primera vez)
+flyctl apps create bidify-da1
+flyctl volumes create bidify_data --region gru --size 1 --app bidify-da1
+
+# Deploy (cada vez que hay cambios)
+flyctl deploy --remote-only
+
+# Ver logs en vivo
+flyctl logs --app bidify-da1
+
+# Abrir shell en el contenedor
+flyctl ssh console --app bidify-da1
+```
+
+**Advertencia:** `DATABASE_URL` está en `[env]` del `fly.toml` (no en secrets). Para producción real conviene moverlo a `flyctl secrets set DATABASE_URL=...`, pero para la entrega académica está bien así.
+
+---
+
+## 17. EAS Build — APK Android
+
+```bash
+cd frontend
+
+# Login (solo primera vez)
+eas whoami  # verificar sesión
+
+# Build APK (perfil preview)
+eas build --platform android --profile preview --non-interactive
+
+# El APK se descarga desde la URL que imprime al terminar
+```
+
+**Proyecto EAS:** `@kevin100301/bidify` (ID: `66893e2c-eae9-43b6-956a-80f7d02bd58c`)
+**La URL del backend está inlineada en `eas.json`** bajo `build.preview.android.env.EXPO_PUBLIC_API_URL`.
+
+---
+
+## 18. Design system
 
 - **Fondo principal:** `#141923` · **Acento dorado:** `#E9C349`
 - Iconos: Ionicons · Fuente: sistema · Paleta oscura con dorado para primarios
 
 ---
 
-## 17. Comandos útiles
+## 19. Comandos útiles
 
 ```bash
-# Backend
+# Backend (local)
 pip install -r requirements.txt
 alembic upgrade head
-python seed.py
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-# Frontend
+# Frontend (local)
 cd frontend && npm install && npx expo start
 
-# Swagger UI
+# Swagger UI (local)
 http://localhost:8000/docs
+
+# Admin panel (producción)
+https://bidify-da1.fly.dev/admin
+
+# Ver/modificar DB en producción
+flyctl ssh console --app bidify-da1
+# dentro del contenedor:
+sqlite3 /data/subastas.db
 ```
