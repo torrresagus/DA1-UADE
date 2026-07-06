@@ -19,6 +19,7 @@ from app.models import (
     Articulo,
     CatalogoItem,
     CategoriaUsuario,
+    CuentaCobro,
     EstadoArticulo,
     EstadoMedioPago,
     EstadoRegistro,
@@ -32,6 +33,7 @@ from app.models import (
     Usuario,
     Venta,
 )
+from app.services.email import enviar_mail_completar_registro
 from app.services.pujas import mejor_puja
 
 _TIMER_SOLICITUD = timedelta(seconds=15)
@@ -56,22 +58,82 @@ def _get_empresa(db: Session) -> Usuario:
     return empresa
 
 
+def _invalidar_seguros(articulo: Articulo) -> None:
+    """El retiro personal del bien hace perder la cobertura del seguro."""
+    for seg in articulo.seguros:
+        seg.vigente = False
+
+
+def _liquidar_a_consignante(
+    db: Session, vendedor_id: int | None, comprador_id: int, neto: Decimal, moneda: str
+) -> None:
+    """El dinero de un artículo vendido de un cliente se envía a su cuenta a la vista.
+
+    Sólo aplica cuando el bien tenía un dueño-consignante real (distinto del
+    comprador y de la empresa). Se busca su cuenta declarada antes de la subasta.
+    """
+    if vendedor_id is None or vendedor_id == comprador_id:
+        return
+    vendedor = db.get(Usuario, vendedor_id)
+    if vendedor is None or vendedor.email == settings.empresa_email:
+        return
+    cuenta = (
+        db.query(CuentaCobro)
+        .filter(CuentaCobro.usuario_id == vendedor_id)
+        .order_by(CuentaCobro.declarada_antes_subasta.desc(), CuentaCobro.id.desc())
+        .first()
+    )
+    if cuenta is not None:
+        destino = f"{cuenta.banco} · {cuenta.numero_cuenta} ({cuenta.pais})"
+        cuerpo = (
+            f"Se acreditarán {neto} {moneda} por la venta de tu bien en la cuenta a la vista "
+            f"declarada: {destino}."
+        )
+    else:
+        cuerpo = (
+            f"Tu bien se vendió y te corresponden {neto} {moneda}. "
+            "Declará una cuenta a la vista para poder acreditarte el importe."
+        )
+    db.add(Notificacion(
+        usuario_id=vendedor_id,
+        tipo="liquidacion",
+        titulo="Liquidación por venta de tu bien",
+        cuerpo=cuerpo,
+    ))
+
+
 def _cerrar_item(db: Session, item: CatalogoItem) -> None:
     """Crea la Venta para un ítem no vendido al cierre de la subasta."""
     puja = mejor_puja(db, item.id)
     moneda = item.articulo.moneda if item.articulo else "ARS"
+    articulo = db.get(Articulo, item.articulo_id)
+    # Dueño-consignante antes del cierre: es quien cobra la liquidación.
+    vendedor_id = articulo.dueno_actual_id if articulo else None
+
+    retira = puja.retira_personalmente if puja is not None else False
+    # El envío corre por cuenta del comprador; si retira personalmente no hay envío.
+    costo_envio = Decimal("0") if (retira or puja is None) else Decimal(settings.costo_envio_base)
+    medio_pago_id = puja.medio_pago_id if puja is not None else None
 
     if puja is not None:
         comprador_id = puja.usuario_id
         monto = Decimal(puja.monto)
         comision = (monto * Decimal("0.10")).quantize(Decimal("0.01"))
+        total = monto + comision + costo_envio
+        comprador = db.get(Usuario, comprador_id)
+        destino = comprador.domicilio if (comprador and not retira) else None
+        envio_txt = (
+            "retiro personal (sin envío ni cobertura de seguro)"
+            if retira
+            else f"envío {costo_envio} a {destino or 'la dirección declarada'}"
+        )
         db.add(Notificacion(
             usuario_id=comprador_id,
             tipo="venta",
             titulo="¡Ganaste un lote!",
             cuerpo=(
-                f"Importe a pagar: {monto + comision} {moneda} "
-                f"(oferta {monto} + comisión {comision})."
+                f"Importe a pagar: {total} {moneda} "
+                f"(oferta {monto} + comisión {comision} + {envio_txt})."
             ),
         ))
     else:
@@ -82,17 +144,24 @@ def _cerrar_item(db: Session, item: CatalogoItem) -> None:
     db.add(Venta(
         catalogo_item_id=item.id,
         comprador_id=comprador_id,
-        medio_pago_id=None,
+        medio_pago_id=medio_pago_id,
         monto_final=monto,
         comision=comision,
-        costo_envio=Decimal("0"),
+        costo_envio=costo_envio,
         moneda=moneda,
-        retira_personalmente=puja.retira_personalmente if puja is not None else False,
+        retira_personalmente=retira,
     ))
     item.vendido = True
-    articulo = db.get(Articulo, item.articulo_id)
     if articulo:
         articulo.estado = EstadoArticulo.VENDIDO
+        # El retiro personal del bien hace perder la cobertura del seguro.
+        if retira:
+            _invalidar_seguros(articulo)
+        # El dinero de la venta va a la cuenta a la vista del consignante.
+        if puja is not None:
+            _liquidar_a_consignante(
+                db, vendedor_id, comprador_id, monto - comision, moneda
+            )
         articulo.dueno_actual_id = comprador_id
 
 
@@ -181,6 +250,8 @@ def procesar_usuarios_pendientes() -> int:
                 titulo="¡Tu identidad fue verificada!",
                 cuerpo="Tu documentación fue aprobada. Ya podés ingresar a la app y crear tu contraseña.",
             ))
+            # Enunciado: al finalizar la etapa 1 se envía un mail para completar el registro.
+            enviar_mail_completar_registro(usuario.email, usuario.nombre)
         if pendientes:
             db.commit()
         return len(pendientes)

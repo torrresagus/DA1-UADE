@@ -1,3 +1,12 @@
+"""FLUJO — Registro de postores, aprobación e identidad.
+
+Enunciado: la registración es en DOS etapas. Etapa 1 (`registrar_etapa_1`) toma los
+datos + fotos del documento; la empresa verifica e informa una categoría
+(`aprobar_usuario`) y se envía un mail para completar el registro; en la etapa 2
+(`registrar_etapa_2`) el postor genera su clave. `login` identifica al usuario antes
+de participar. También gestiona las cuentas de cobro (cuenta a la vista) del vendedor.
+Ver también: [medios_pago.py] (al menos un medio), [../services/categorias.py] (categoría).
+"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -5,6 +14,7 @@ from app.database import get_db
 from app.models import CuentaCobro, EstadoRegistro, Usuario
 from app.services.auth import hash_password, verify_password
 from app.services.categorias import recalcular_categoria
+from app.services.email import enviar_mail_completar_registro
 from app.schemas.usuario import (
     CambiarEmailPayload,
     CambiarPasswordPayload,
@@ -49,6 +59,8 @@ def aprobar_usuario(usuario_id: int, payload: UsuarioAprobacion, db: Session = D
     usuario.estado_registro = EstadoRegistro.APROBADO_FASE_1
     db.commit()
     db.refresh(usuario)
+    # Al finalizar la etapa 1 se le avisa por mail que ingrese y genere su clave.
+    enviar_mail_completar_registro(usuario.email, usuario.nombre)
     return usuario
 
 

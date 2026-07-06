@@ -1,9 +1,22 @@
+"""FLUJO — Solicitudes de venta de bienes (el usuario ofrece un bien a la empresa).
+
+`crear_solicitud`: carga con >=6 fotos, declaración de propiedad (obligatoria) y origen
+lícito; si no se acredita el origen se marca para revisión y se AVISA A LAS AUTORIDADES
+(`_avisar_autoridades`). Máquina de estados (automatizada en [../services/cierre.py]):
+INGRESADA → EN_INSPECCION. `resolver_solicitud` (empresa): acepta con precio base + comisión
++ fecha, o rechaza con motivo e informa gastos de devolución. `responder_solicitud` (usuario):
+si acepta se crea el artículo, su seguro y la subasta (agrupando en COLECCIÓN si ya hay bienes
+suyos); si rechaza, se informan los gastos de devolución.
+"""
+import logging
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.config import settings
+
+logger = logging.getLogger("bidify.cumplimiento")
 from app.database import get_db
 from app.models import (
     Articulo,
@@ -42,6 +55,20 @@ def _get_deposito_central(db: Session) -> Deposito:
     return dep
 
 
+def _avisar_autoridades(sol: SolicitudSubasta) -> None:
+    """Ante dudas sobre el origen de un bien, la empresa avisa a las autoridades.
+
+    Se deja registro (log/auditoría) y se marca la solicitud como avisada.
+    """
+    logger.warning(
+        "AVISO A AUTORIDADES — solicitud #%s (usuario %s): origen lícito NO acreditado. %s",
+        sol.id,
+        sol.usuario_id,
+        f"Documentación: {sol.origen_documentacion_url}" if sol.origen_documentacion_url else "Sin documentación adjunta.",
+    )
+    sol.autoridad_avisada = True
+
+
 def _get_rematador_default(db: Session) -> Rematador:
     r = db.query(Rematador).first()
     if r is None:
@@ -77,11 +104,14 @@ def crear_solicitud(
     data = payload.model_dump()
     imagenes = data.pop("imagenes", [])
     sol = SolicitudSubasta(usuario_id=usuario_id, **data)
-    # Si no se acreditó el origen lícito, marcar para revisión/aviso a autoridades.
+    # Si no se acreditó el origen lícito, marcar para revisión y avisar a las autoridades.
     sol.revisar_origen = not payload.origen_licito_acreditado
+    db.add(sol)
+    db.flush()  # necesitamos sol.id para el aviso
+    if sol.revisar_origen:
+        _avisar_autoridades(sol)
     for img in imagenes:
         sol.imagenes.append(ImagenSolicitud(**img))
-    db.add(sol)
     db.commit()
     db.refresh(sol)
     return sol
@@ -138,12 +168,17 @@ def resolver_solicitud(
             ),
         )
     elif s.estado == EstadoSolicitud.RECHAZADA:
+        # El bien se devuelve con cargo: se informan los gastos de devolución.
+        s.gastos_devolucion = Decimal(settings.gastos_devolucion_base)
         crear_notificacion(
             db,
             usuario_id=s.usuario_id,
             tipo="solicitud",
             titulo="Tu bien fue rechazado",
-            cuerpo=f"Motivo: {s.motivo_rechazo or 'sin especificar'}. El bien se devuelve con cargo.",
+            cuerpo=(
+                f"Motivo: {s.motivo_rechazo or 'sin especificar'}. "
+                f"El bien se devuelve con cargo (gastos de devolución: {s.gastos_devolucion})."
+            ),
         )
     db.commit()
     db.refresh(s)
@@ -291,6 +326,17 @@ def responder_solicitud(
     else:
         # No acepta valor/comisiones: se procede a la devolución informando gastos.
         s.estado = EstadoSolicitud.RECHAZADA_POR_USUARIO
+        s.gastos_devolucion = Decimal(settings.gastos_devolucion_base)
+        crear_notificacion(
+            db,
+            usuario_id=s.usuario_id,
+            tipo="solicitud",
+            titulo="Devolución de tu bien",
+            cuerpo=(
+                "No aceptaste el valor base / las comisiones propuestas. "
+                f"Se procederá a la devolución del bien con un gasto de {s.gastos_devolucion}."
+            ),
+        )
     db.commit()
     db.refresh(s)
     return s

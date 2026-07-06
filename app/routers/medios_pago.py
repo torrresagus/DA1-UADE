@@ -1,9 +1,24 @@
+"""FLUJO — Medios de pago del postor (CRUD + verificación).
+
+Enunciado: el usuario debe registrar AL MENOS UN medio y puede gestionar todos los que
+quiera. Tipos: cuenta bancaria (incl. extranjera), tarjeta (nac./ext.) y cheque
+certificado (con `monto_garantia`). La empresa los VERIFICA antes de la subasta
+(`verificar_medio_pago`); sólo un medio verificado habilita a pujar
+(ver [../services/pujas.py]). Editar un medio (`actualizar_medio_pago`) lo vuelve a dejar
+pendiente de verificación. La diversidad de medios mejora la categoría
+([../services/categorias.py]).
+"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import EstadoMedioPago, MedioPago, Usuario
-from app.schemas.medio_pago import MedioPagoCreate, MedioPagoOut, MedioPagoVerificar
+from app.schemas.medio_pago import (
+    MedioPagoCreate,
+    MedioPagoOut,
+    MedioPagoUpdate,
+    MedioPagoVerificar,
+)
 from app.services.categorias import recalcular_categoria
 
 router = APIRouter(prefix="/usuarios/{usuario_id}/medios-pago", tags=["Medios de pago"])
@@ -30,6 +45,29 @@ def crear_medio_pago(
 @router.get("", response_model=list[MedioPagoOut], summary="Listar medios de pago del usuario")
 def listar_medios_pago(usuario_id: int, db: Session = Depends(get_db)):
     return db.query(MedioPago).filter(MedioPago.usuario_id == usuario_id).all()
+
+
+@router.patch(
+    "/{mp_id}",
+    response_model=MedioPagoOut,
+    summary="Editar un medio de pago (vuelve a estado pendiente de verificación)",
+)
+def actualizar_medio_pago(
+    usuario_id: int, mp_id: int, payload: MedioPagoUpdate, db: Session = Depends(get_db)
+):
+    mp = db.get(MedioPago, mp_id)
+    if mp is None or mp.usuario_id != usuario_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Medio de pago no encontrado")
+    cambios = payload.model_dump(exclude_unset=True)
+    for campo, valor in cambios.items():
+        setattr(mp, campo, valor)
+    # Al modificar los datos, el medio debe volver a verificarse antes de usarse.
+    if cambios:
+        mp.verificado = False
+        mp.estado = EstadoMedioPago.PENDIENTE
+    db.commit()
+    db.refresh(mp)
+    return mp
 
 
 @router.post(

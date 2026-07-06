@@ -1,3 +1,11 @@
+"""FLUJO — Cierre de venta (endpoints manuales) e impago.
+
+Cuando ya nadie puja más alto, el último postor se queda con la pieza: `cerrar_venta`
+registra la Venta con el medio de pago, comisión y envío, marca el ítem vendido, actualiza
+el dueño e invalida el seguro si el comprador RETIRA personalmente. `cerrar_sin_pujas`:
+la empresa compra al valor base. `registrar_impago`: multa del 10% + bloqueo + 72hs.
+El cierre AUTOMÁTICO (el que corre en la demo) está en [../services/cierre.py].
+"""
 from datetime import datetime, timedelta
 from decimal import Decimal
 

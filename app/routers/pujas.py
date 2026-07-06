@@ -1,3 +1,12 @@
+"""FLUJO — Pujas (subasta dinámica ascendente) en tiempo real.
+
+`crear_puja` valida las reglas de incremento en [../services/pujas.py]
+(`validar_y_registrar_puja`) y, una vez confirmada la transacción, DIFUNDE la nueva
+mejor oferta por WebSocket a todos los conectados a la subasta ([../services/realtime.py]).
+Recién ahí responde: por eso el cliente no puede pujar de nuevo hasta que el sistema
+confirmó e informó al resto (requisito del enunciado). `mejor_oferta` expone la mejor
+oferta y el rango válido para la próxima puja.
+"""
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -30,6 +39,7 @@ async def crear_puja(payload: PujaCreate, db: Session = Depends(get_db)):
             usuario_id=payload.usuario_id,
             monto=payload.monto,
             retira_personalmente=payload.retira_personalmente,
+            medio_pago_id=payload.medio_pago_id,
         )
     except PujaInvalida as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))

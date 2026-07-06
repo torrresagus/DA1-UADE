@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { resolveImageUrl } from '@/api/client';
 import { useMisSolicitudes, useResponderSolicitud, useSolicitud } from '@/api/hooks/useSolicitudes';
 import { useDepositoInspeccion } from '@/api/hooks/useEmpresaInfo';
 import type { CategoriaUsuario, EstadoSolicitud, SolicitudOut } from '@/api/types';
@@ -149,7 +150,7 @@ function SolicitudList({ query }: { query: ReturnType<typeof useMisSolicitudes> 
               router.push({ pathname: '/product-status', params: { id: String(s.id) } })
             }
             style={styles.listRow}>
-            <Image source={{ uri: s.imagenes[0]?.url ?? PLACEHOLDER_IMAGE }} style={styles.listThumb} />
+            <Image source={{ uri: resolveImageUrl(s.imagenes[0]?.url) || PLACEHOLDER_IMAGE }} style={styles.listThumb} />
             <View style={styles.flex}>
               <ThemedText type="smallBold" numberOfLines={1}>
                 {(s.descripcion ?? '').slice(0, 50) || 'Sin descripción'}
@@ -182,7 +183,7 @@ function StatusBody({ solicitud }: { solicitud: SolicitudOut }) {
   const [iniciarInmediatamente, setIniciarInmediatamente] = useState(false);
 
   const title = (solicitud.descripcion ?? '').slice(0, 60) || 'Sin descripción';
-  const imageUri = solicitud.imagenes[0]?.url ?? PLACEHOLDER_IMAGE;
+  const imageUri = resolveImageUrl(solicitud.imagenes[0]?.url) || PLACEHOLDER_IMAGE;
   const badge = BADGE[solicitud.estado] ?? BADGE.ingresada;
   const current = progressIndex(solicitud.estado);
 

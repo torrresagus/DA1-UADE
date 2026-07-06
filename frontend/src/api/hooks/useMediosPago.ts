@@ -12,7 +12,13 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 
 import * as usuariosApi from '@/api/endpoints/usuarios';
 import { queryClient, queryKeys } from '@/api/query-client';
-import type { CuentaCobroCreate, CuentaCobroOut, MedioPagoCreate, MedioPagoOut } from '@/api/types';
+import type {
+  CuentaCobroCreate,
+  CuentaCobroOut,
+  MedioPagoCreate,
+  MedioPagoOut,
+  MedioPagoUpdate,
+} from '@/api/types';
 
 /** True when `id` is a usable backend identity. */
 function isValidId(id: number | null): id is number {
@@ -33,6 +39,16 @@ export function useMediosPago(usuarioId: number | null) {
 export function useCreateMedioPago(usuarioId: number) {
   return useMutation<MedioPagoOut, Error, MedioPagoCreate>({
     mutationFn: (body: MedioPagoCreate) => usuariosApi.createMedioPago(usuarioId, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mediosPago(usuarioId) });
+    },
+  });
+}
+
+/** Edit a medio de pago for a usuario; refreshes that usuario's list. */
+export function useUpdateMedioPago(usuarioId: number) {
+  return useMutation<MedioPagoOut, Error, { mpId: number; body: MedioPagoUpdate }>({
+    mutationFn: ({ mpId, body }) => usuariosApi.updateMedioPago(usuarioId, mpId, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mediosPago(usuarioId) });
     },

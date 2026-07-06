@@ -23,6 +23,8 @@ class SolicitudCreate(BaseModel):
     datos_historicos: str | None = None
     declara_propiedad: bool
     origen_licito_acreditado: bool = False
+    # Documentación (URL) que acredita el origen lícito, si se dispone.
+    origen_documentacion_url: str | None = None
     acepta_devolucion_con_cargo: bool
     cantidad_elementos: int = 1
     # El enunciado exige fotos del bien (al menos 6).
@@ -52,7 +54,9 @@ class SolicitudOut(ORMBase):
     datos_historicos: str | None = None
     declara_propiedad: bool
     origen_licito_acreditado: bool
+    origen_documentacion_url: str | None = None
     revisar_origen: bool = False
+    autoridad_avisada: bool = False
     acepta_devolucion_con_cargo: bool
     cantidad_elementos: int = 1
     estado: EstadoSolicitud
@@ -61,6 +65,7 @@ class SolicitudOut(ORMBase):
     comision_propuesta: Decimal | None = None
     fecha_subasta_propuesta: datetime | None = None
     respuesta_usuario: bool | None = None
+    gastos_devolucion: Decimal | None = None
     fecha: datetime
     imagenes: list[ImagenSolicitudOut] = []
 

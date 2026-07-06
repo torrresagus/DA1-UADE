@@ -142,7 +142,12 @@ function FilterSheet({
 export default function HomeScreen() {
   const theme = useTheme();
   const { usuario, usuarioId, isGuest, exitGuestMode } = useSession();
-  const auctions = useAuctions({ usuarioCategoria: isGuest ? 'platino' : usuario?.categoria });
+  // El invitado navega el catálogo (público) pero no envía usuario_id: el backend
+  // le oculta el precio base. El registrado sí lo envía y ve los precios.
+  const auctions = useAuctions({
+    usuarioCategoria: isGuest ? 'platino' : usuario?.categoria,
+    usuarioId: isGuest ? null : usuarioId,
+  });
   const unpaid = useUnpaidMultaCount(usuarioId);
 
   const [query, setQuery] = useState('');

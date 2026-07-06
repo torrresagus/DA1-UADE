@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
-import type { CuentaCobroCreate, CuentaCobroOut, MedioPagoCreate, MedioPagoOut, Moneda, TipoMedioPago } from '@/api/types';
+import type { CuentaCobroCreate, CuentaCobroOut, MedioPagoCreate, MedioPagoOut, MedioPagoUpdate, Moneda, TipoMedioPago } from '@/api/types';
 import {
   useCreateCuentaCobro,
   useCreateMedioPago,
   useCuentasCobro,
   useDeleteMedioPago,
   useMediosPago,
+  useUpdateMedioPago,
 } from '@/api/hooks/useMediosPago';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
@@ -281,8 +282,14 @@ export default function PaymentsScreen() {
   const methods = useMediosPago(usuarioId);
   const createM = useCreateMedioPago(usuarioId ?? 0);
   const delM = useDeleteMedioPago(usuarioId ?? 0);
+  const updateM = useUpdateMedioPago(usuarioId ?? 0);
   const cuentas = useCuentasCobro(usuarioId);
   const createCuenta = useCreateCuentaCobro(usuarioId ?? 0);
+
+  const [editing, setEditing] = useState<MedioPagoOut | null>(null);
+  const [editForm, setEditForm] = useState({ titular: '', detalle: '', pais: '', monto_garantia: '', moneda: 'ARS' as Moneda });
+  const [editError, setEditError] = useState<string | null>(null);
+  const setEdit = (k: keyof typeof editForm) => (v: string) => setEditForm((f) => ({ ...f, [k]: v }));
 
   const [formOpen, setFormOpen] = useState(false);
   const [tipo, setTipo] = useState<TipoMedioPago>('tarjeta_credito');
@@ -332,6 +339,38 @@ export default function PaymentsScreen() {
     });
   };
 
+  const openEdit = (m: MedioPagoOut) => {
+    setEditing(m);
+    setEditForm({
+      titular: m.titular,
+      detalle: m.detalle,
+      pais: m.pais,
+      monto_garantia: m.monto_garantia != null ? String(m.monto_garantia) : '',
+      moneda: (m.moneda ?? 'ARS') as Moneda,
+    });
+    setEditError(null);
+  };
+
+  const onSaveEdit = async () => {
+    if (!editing) return;
+    setEditError(null);
+    try {
+      const body: MedioPagoUpdate = {
+        titular: editForm.titular.trim(),
+        detalle: editForm.detalle.trim(),
+        pais: editForm.pais.trim(),
+      };
+      if (editing.tipo !== 'tarjeta_credito') body.moneda = editForm.moneda;
+      if (editing.tipo === 'cheque_certificado') {
+        body.monto_garantia = editForm.monto_garantia.replace(/\./g, '') || null;
+      }
+      await updateM.mutateAsync({ mpId: editing.id, body });
+      setEditing(null);
+    } catch (err) {
+      setEditError(err instanceof ApiError ? err.detail : 'Ocurrió un error');
+    }
+  };
+
   const canSubmit = isFormValid(tipo, form) && !createM.isPending;
 
   // Errores inline calculados reactivamente
@@ -379,6 +418,15 @@ export default function PaymentsScreen() {
                       {m.detalle} · {m.pais}
                     </ThemedText>
                   </View>
+                  <Button
+                    title=""
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => openEdit(m)}
+                    disabled={updateM.isPending}
+                    icon={<Icon name="create-outline" size={18} color={theme.primary} />}
+                    style={styles.iconBtn}
+                  />
                   <Button
                     title=""
                     variant="ghost"
@@ -524,6 +572,66 @@ export default function PaymentsScreen() {
                 }}
                 loading={createCuenta.isPending}
                 disabled={!canSubmitCuenta}
+                fullWidth
+              />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Modal de edición de método ── */}
+      <Modal visible={editing != null} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
+        <View style={styles.backdrop}>
+          <View style={[styles.sheet, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.sheetHeader}>
+              <ThemedText type="heading">Editar método de pago</ThemedText>
+              <Button
+                title=""
+                variant="ghost"
+                size="sm"
+                onPress={() => setEditing(null)}
+                icon={<Icon name="close" size={20} color={theme.textSecondary} />}
+                style={styles.iconBtn}
+              />
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.form}>
+              <Input label="Titular" value={editForm.titular} onChangeText={setEdit('titular')} />
+              <Input label="Descripción / alias" value={editForm.detalle} onChangeText={setEdit('detalle')} />
+              <Input label="País" value={editForm.pais} onChangeText={setEdit('pais')} />
+              {editing?.tipo === 'cheque_certificado' ? (
+                <Input
+                  label="Monto garantizado"
+                  keyboardType="numeric"
+                  value={editForm.monto_garantia}
+                  onChangeText={(t) => setEdit('monto_garantia')(fmtMoney(t))}
+                />
+              ) : null}
+              {editing?.tipo !== 'tarjeta_credito' ? (
+                <View style={styles.field}>
+                  <FieldLabel label="Moneda" />
+                  <View style={styles.chipRow}>
+                    {MONEDA_OPTIONS.map((o) => (
+                      <Chip
+                        key={o.value}
+                        label={o.label}
+                        active={editForm.moneda === o.value}
+                        onPress={() => setEditForm((f) => ({ ...f, moneda: o.value }))}
+                      />
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+              <ThemedText type="caption" themeColor="textSecondary">
+                Al editar, el método vuelve a quedar pendiente de verificación.
+              </ThemedText>
+              {editError ? (
+                <ThemedText type="caption" style={{ color: theme.danger }}>{editError}</ThemedText>
+              ) : null}
+              <Button
+                title="Guardar cambios"
+                onPress={onSaveEdit}
+                loading={updateM.isPending}
+                disabled={updateM.isPending || editForm.titular.trim().length === 0}
                 fullWidth
               />
             </ScrollView>

@@ -37,14 +37,17 @@ const LIVE_REFETCH_MS = 5000;
  * fall back to each item's precio_base (handled inside toLotCards), and the
  * live best offer is fetched on demand by useMejorOferta on the detail screen.
  */
-export function useAuctions(opts: { usuarioCategoria?: CategoriaUsuario | null } = {}) {
-  const { usuarioCategoria } = opts;
+export function useAuctions(
+  opts: { usuarioCategoria?: CategoriaUsuario | null; usuarioId?: number | null } = {},
+) {
+  const { usuarioCategoria, usuarioId } = opts;
   return useQuery<Auction[]>({
-    queryKey: queryKeys.lots(),
+    // Separate cache for guest (no prices) vs registered (prices).
+    queryKey: queryKeys.lots(usuarioId != null ? `u${usuarioId}` : 'guest'),
     refetchInterval: 30_000,
     queryFn: async () => {
       const [subastas, articulos] = await Promise.all([
-        subastasApi.listSubastas(),
+        subastasApi.listSubastas({ usuarioId }),
         subastasApi.listArticulos(),
       ]);
 
@@ -69,13 +72,14 @@ export function useAuctions(opts: { usuarioCategoria?: CategoriaUsuario | null }
 export function useAuctionDetail(
   catalogoItemId: number,
   usuarioCategoria?: CategoriaUsuario | null,
+  usuarioId?: number | null,
 ) {
   return useQuery<AuctionDetailVM>({
-    queryKey: queryKeys.lot(catalogoItemId),
+    queryKey: [...queryKeys.lot(catalogoItemId), usuarioId != null ? `u${usuarioId}` : 'guest'],
     enabled: Number.isFinite(catalogoItemId) && catalogoItemId > 0,
     refetchInterval: LIVE_REFETCH_MS,
     queryFn: async () => {
-      const subastas = await subastasApi.listSubastas();
+      const subastas = await subastasApi.listSubastas({ usuarioId });
 
       let subasta: (typeof subastas)[number] | undefined;
       let item: (typeof subastas)[number]['catalogo'][number] | undefined;

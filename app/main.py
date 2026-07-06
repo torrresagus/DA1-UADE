@@ -41,7 +41,19 @@ _SCHEDULER_INTERVAL = 15  # segundos
 
 
 async def _scheduler():
-    """Revisa cada 15 s subastas vencidas y avanza solicitudes en la máquina de estados."""
+    """Motor de la demo: cada 15 s avanza toda la máquina de estados del dominio.
+
+    Es lo que hace que la app "viva sola" durante la exposición. En cada tick
+    ([../services/cierre.py]):
+      1. Aprueba usuarios pendientes (etapa 1) y les manda el mail de completar registro.
+      2. Verifica medios de pago pendientes.
+      3. Avanza solicitudes (INGRESADA → EN_INSPECCION).
+      4. Abre subastas PROGRAMADAS que llegaron a su hora.
+      5. Cierra subastas vencidas → genera Ventas (medio de pago, comisión, envío,
+         invalidación de seguro si retira, liquidación al consignante).
+      6. Genera multas del 10% por ventas impagas y bloquea al usuario.
+      7. Deriva a la justicia las multas vencidas (suspensión total).
+    """
     while True:
         await asyncio.sleep(_SCHEDULER_INTERVAL)
         try:
