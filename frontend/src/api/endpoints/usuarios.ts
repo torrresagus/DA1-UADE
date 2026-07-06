@@ -15,6 +15,7 @@ import type {
   CuentaCobroOut,
   MedioPagoCreate,
   MedioPagoOut,
+  MedioPagoUpdate,
   MedioPagoVerificar,
 } from '@/api/types';
 
@@ -56,6 +57,17 @@ export async function verificarMedioPago(
 ): Promise<MedioPagoOut> {
   return apiFetch<MedioPagoOut>(`/usuarios/${usuarioId}/medios-pago/${mpId}/verificar`, {
     method: 'POST',
+    body,
+  });
+}
+
+export async function updateMedioPago(
+  usuarioId: number,
+  mpId: number,
+  body: MedioPagoUpdate,
+): Promise<MedioPagoOut> {
+  return apiFetch<MedioPagoOut>(`/usuarios/${usuarioId}/medios-pago/${mpId}`, {
+    method: 'PATCH',
     body,
   });
 }

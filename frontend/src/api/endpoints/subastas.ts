@@ -19,10 +19,19 @@ import type {
 
 // ─── Subastas ─────────────────────────────────────────────────────────────
 
-/** GET /subastas — full catálogo (with precio_base); optional `estado` filter. */
-export function listSubastas(opts?: { estado?: EstadoSubasta }): Promise<SubastaOut[]> {
+/**
+ * GET /subastas — catálogo. `usuarioId` (registrado) trae los precios base;
+ * sin él (invitado) el backend los omite. Optional `estado` filter.
+ */
+export function listSubastas(opts?: {
+  estado?: EstadoSubasta;
+  usuarioId?: number | null;
+}): Promise<SubastaOut[]> {
+  const query: Record<string, string | number> = {};
+  if (opts?.estado) query.estado = opts.estado;
+  if (opts?.usuarioId != null) query.usuario_id = opts.usuarioId;
   return apiFetch<SubastaOut[]>('/subastas', {
-    query: opts?.estado ? { estado: opts.estado } : undefined,
+    query: Object.keys(query).length ? query : undefined,
   });
 }
 

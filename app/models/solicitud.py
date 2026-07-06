@@ -19,8 +19,12 @@ class SolicitudSubasta(Base):
     datos_historicos: Mapped[str | None] = mapped_column(Text, default=None)
     declara_propiedad: Mapped[bool] = mapped_column(Boolean, default=False)
     origen_licito_acreditado: Mapped[bool] = mapped_column(Boolean, default=False)
+    # URL a la documentación que acredita el origen lícito del bien (opcional).
+    origen_documentacion_url: Mapped[str | None] = mapped_column(String(500), default=None)
     # Si no se acreditó el origen lícito, la empresa debe revisar/avisar a las autoridades.
     revisar_origen: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Queda en True una vez que la empresa avisó a las autoridades por dudas de origen.
+    autoridad_avisada: Mapped[bool] = mapped_column(Boolean, default=False)
     acepta_devolucion_con_cargo: Mapped[bool] = mapped_column(Boolean, default=False)
     cantidad_elementos: Mapped[int] = mapped_column(Integer, default=1)
     estado: Mapped[EstadoSolicitud] = mapped_column(Enum(EstadoSolicitud), default=EstadoSolicitud.INGRESADA)
@@ -30,6 +34,8 @@ class SolicitudSubasta(Base):
     fecha_subasta_propuesta: Mapped[datetime | None] = mapped_column(DateTime, default=None)
     # Respuesta del usuario a las condiciones propuestas (acepta/rechaza valor y comisiones).
     respuesta_usuario: Mapped[bool | None] = mapped_column(Boolean, default=None)
+    # Gastos informados al usuario cuando el bien se devuelve (rechazo de la empresa o del usuario).
+    gastos_devolucion: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), default=None)
     fecha: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     usuario = relationship("Usuario", back_populates="solicitudes")

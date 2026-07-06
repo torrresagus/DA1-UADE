@@ -1,7 +1,8 @@
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
+from app.config import settings
 from app.models.enums import EstadoArticulo
 from app.schemas.common import ORMBase
 
@@ -82,3 +83,9 @@ class SeguroOut(ORMBase):
     moneda: str
     vigente: bool = True
     articulo_ids: list[int] = []
+
+    @computed_field
+    @property
+    def premio(self) -> Decimal:
+        """Prima de la póliza en función del monto cubierto."""
+        return (Decimal(self.monto_cubierto) * settings.seguro_premio_pct).quantize(Decimal("0.01"))

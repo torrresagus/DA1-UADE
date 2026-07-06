@@ -12,6 +12,8 @@ class PujaCreate(BaseModel):
     usuario_id: int
     monto: Decimal
     retira_personalmente: bool = False
+    # Medio de pago con el que cancelaría si gana (opcional pero recomendado).
+    medio_pago_id: int | None = None
 
 
 class PujaOut(ORMBase):
@@ -23,6 +25,7 @@ class PujaOut(ORMBase):
     fecha_hora: datetime
     estado: EstadoPuja
     retira_personalmente: bool
+    medio_pago_id: int | None = None
 
 
 class MejorOferta(BaseModel):

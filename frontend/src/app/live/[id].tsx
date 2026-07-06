@@ -36,7 +36,7 @@ export default function LiveRoomScreen() {
 
   const mejorQuery = useMejorOferta(catalogoItemId);
   const pujasQuery = usePujasItem(catalogoItemId);
-  const detailQuery = useAuctionDetail(catalogoItemId, usuario?.categoria);
+  const detailQuery = useAuctionDetail(catalogoItemId, usuario?.categoria, usuario?.id ?? null);
   const { data: medios } = useMediosPago(usuarioId);
   const hasVerifiedMedio = !!medios?.some((m) => m.verificado);
   const live = useLiveSubasta(detailQuery.data?.subastaId ?? null, usuarioId);

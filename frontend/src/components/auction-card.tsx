@@ -15,7 +15,8 @@ export type Auction = {
   id: string;
   title: string;
   image: string;
-  currentBid: number;
+  /** null cuando el usuario no está registrado (precio base oculto). */
+  currentBid: number | null;
   bidLabel?: string;
   moneda: Moneda;
   category?: string;
@@ -86,13 +87,24 @@ export function AuctionCard({ auction, onPress, onBid }: AuctionCardProps) {
         <View style={styles.bidRow}>
           <View>
             <ThemedText type="caption" themeColor="textSecondary">
-              {auction.locked ? 'Acceso restringido' : (auction.bidLabel ?? 'Puja actual')}
+              {auction.locked
+                ? 'Acceso restringido'
+                : auction.currentBid == null
+                  ? 'Precio base'
+                  : (auction.bidLabel ?? 'Puja actual')}
             </ThemedText>
             {auction.locked ? (
               <View style={styles.lockRow}>
                 <Icon name="lock-closed" size={16} color={theme.textSecondary} />
                 <ThemedText type="small" themeColor="textSecondary">
                   Platino
+                </ThemedText>
+              </View>
+            ) : auction.currentBid == null ? (
+              <View style={styles.lockRow}>
+                <Icon name="lock-closed" size={16} color={theme.textSecondary} />
+                <ThemedText type="small" themeColor="textSecondary">
+                  Iniciá sesión para ver el precio
                 </ThemedText>
               </View>
             ) : (

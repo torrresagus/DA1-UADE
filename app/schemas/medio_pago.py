@@ -15,6 +15,16 @@ class MedioPagoCreate(BaseModel):
     moneda: str | None = None
 
 
+class MedioPagoUpdate(BaseModel):
+    """Edición de un medio de pago. Todos los campos son opcionales."""
+
+    titular: str | None = None
+    detalle: str | None = None
+    pais: str | None = None
+    monto_garantia: Decimal | None = None
+    moneda: str | None = None
+
+
 class MedioPagoVerificar(BaseModel):
     verificado: bool
 

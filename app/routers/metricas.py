@@ -1,3 +1,9 @@
+"""FLUJO — Métricas de participación (todas calculadas de datos reales de la BD).
+
+Enunciado: cada usuario ve su participación — subastas asistidas, cantidad de pujas,
+veces que ganó, importes ofertado/pagado — y un desglose por categoría de subasta
+(`_por_categoria`). Nada está hardcodeado: son agregaciones SQL sobre Puja y Venta.
+"""
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends

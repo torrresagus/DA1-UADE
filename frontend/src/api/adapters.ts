@@ -9,6 +9,7 @@
 
 import type { Auction } from '@/components/auction-card';
 
+import { resolveImageUrl } from '@/api/client';
 import {
   ArticuloOut,
   CatalogoItemOut,
@@ -79,7 +80,8 @@ export type ArticulosIndex = Record<number, ArticuloOut>;
 export type MejorIndex = Record<number, MejorOferta>;
 
 function firstImage(articulo: ArticuloOut | undefined): string {
-  return articulo?.imagenes?.[0]?.url ?? 'https://placehold.co/600x400?text=Sin+imagen';
+  const raw = articulo?.imagenes?.[0]?.url;
+  return raw ? resolveImageUrl(raw) : 'https://placehold.co/600x400?text=Sin+imagen';
 }
 
 /**
@@ -110,7 +112,13 @@ export function toLotCard(
   const articulo = articulosById[item.articulo_id];
   const status = estadoToStatus(subasta.estado);
   const mejor = mejorByItemId[item.id];
-  const currentBid = mejor?.mejor_monto != null ? num(mejor.mejor_monto) : num(item.precio_base);
+  // precio_base es null para invitados (no registrados): el precio queda oculto.
+  const currentBid =
+    mejor?.mejor_monto != null
+      ? num(mejor.mejor_monto)
+      : item.precio_base != null
+        ? num(item.precio_base)
+        : null;
 
   const searchText = [articulo?.descripcion ?? '', articulo?.artista ?? '', subasta.nombre ?? ''].join(' ');
 
@@ -165,8 +173,9 @@ export type AuctionDetailVM = {
   fechaObra: string | null;
   historia: string | null;
   cantidadElementos: number;
-  basePrice: number;
-  currentBid: number;
+  /** null cuando el usuario no está registrado (precio base oculto). */
+  basePrice: number | null;
+  currentBid: number | null;
   moneda: Moneda;
   status: LotStatus;
   statusLabel: string;
@@ -189,7 +198,10 @@ export function toAuctionDetailVM(
   usuarioCategoria: CategoriaUsuario | null | undefined,
 ): AuctionDetailVM {
   const status = estadoToStatus(subasta.estado);
-  const images = (articulo?.imagenes ?? []).slice().sort((a, b) => a.orden - b.orden).map((i) => i.url);
+  const images = (articulo?.imagenes ?? [])
+    .slice()
+    .sort((a, b) => a.orden - b.orden)
+    .map((i) => resolveImageUrl(i.url));
   return {
     catalogoItemId: item.id,
     subastaId: subasta.id,
@@ -202,8 +214,13 @@ export function toAuctionDetailVM(
     fechaObra: articulo?.fecha_obra ?? null,
     historia: articulo?.historia ?? null,
     cantidadElementos: articulo?.cantidad_elementos ?? 1,
-    basePrice: num(item.precio_base),
-    currentBid: mejor?.mejor_monto != null ? num(mejor.mejor_monto) : num(item.precio_base),
+    basePrice: item.precio_base != null ? num(item.precio_base) : null,
+    currentBid:
+      mejor?.mejor_monto != null
+        ? num(mejor.mejor_monto)
+        : item.precio_base != null
+          ? num(item.precio_base)
+          : null,
     moneda: subasta.moneda,
     status,
     statusLabel: item.vendido ? 'Vendido' : statusLabel(status),

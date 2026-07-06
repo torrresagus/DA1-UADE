@@ -57,6 +57,17 @@ def mejor_puja(db: Session, catalogo_item_id: int) -> Puja | None:
 
 
 def rango_valido(precio_base: Decimal, ultimo_monto: Decimal | None, cat_subasta: CategoriaUsuario):
+    """Rango [mínimo, máximo] válido para la próxima puja.
+
+    - Mínimo = última oferta + 1% del VALOR BASE del bien.
+    - Máximo = última oferta + 20% del VALOR BASE del bien.
+    - Los límites NO aplican para subastas ORO/PLATINO (máximo = None).
+
+    Ejemplo del enunciado (base 10.000, última 15.000):
+        mínimo = 15.000 + 1%·10.000 = 15.100
+        máximo = 15.000 + 20%·10.000 = 17.000
+    Si todavía no hubo ofertas, el mínimo es el propio precio base.
+    """
     base = Decimal(precio_base)
     ultimo = Decimal(ultimo_monto) if ultimo_monto is not None else base
     minimo = ultimo + base * Decimal("0.01") if ultimo_monto is not None else base
@@ -72,6 +83,7 @@ def validar_y_registrar_puja(
     usuario_id: int,
     monto: Decimal,
     retira_personalmente: bool = False,
+    medio_pago_id: int | None = None,
 ) -> Puja:
     item = db.get(CatalogoItem, catalogo_item_id)
     if item is None:
@@ -82,6 +94,9 @@ def validar_y_registrar_puja(
         raise PujaInvalida("La subasta no está abierta")
     if item.vendido:
         raise PujaInvalida("El ítem ya fue vendido")
+
+    # Moneda canónica de la subasta ("ARS"/"USD").
+    moneda_subasta = getattr(subasta.moneda, "value", str(subasta.moneda))
 
     usuario = db.get(Usuario, usuario_id)
     if usuario is None:
@@ -111,6 +126,20 @@ def validar_y_registrar_puja(
     )
     if not medios_verificados:
         raise PujaInvalida("El usuario no tiene un medio de pago verificado")
+
+    # Validar el medio de pago seleccionado (con el que se cancelaría si gana).
+    if medio_pago_id is not None:
+        medio = db.get(MedioPago, medio_pago_id)
+        if medio is None or medio.usuario_id != usuario_id:
+            raise PujaInvalida("Medio de pago inválido")
+        if not (medio.verificado and medio.estado == EstadoMedioPago.VERIFICADO):
+            raise PujaInvalida("El medio de pago seleccionado no está verificado")
+        # Una subasta en dólares debe cancelarse con un medio en dólares.
+        if moneda_subasta == "USD" and (medio.moneda or "ARS") != "USD":
+            raise PujaInvalida(
+                "Una subasta en dólares debe pagarse con un medio de pago en dólares "
+                "(cuenta extranjera o tarjeta internacional)"
+            )
 
     # Si tiene cheque certificado, limitar compras al monto garantizado
     cheque = (
@@ -153,6 +182,7 @@ def validar_y_registrar_puja(
             monto=Decimal(monto),
             estado=EstadoPuja.CONFIRMADA,
             retira_personalmente=retira_personalmente,
+            medio_pago_id=medio_pago_id,
         )
         db.add(puja)
         db.commit()

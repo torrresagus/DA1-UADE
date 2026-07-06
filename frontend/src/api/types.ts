@@ -126,6 +126,14 @@ export interface MedioPagoOut {
   verificado: boolean;
 }
 
+export interface MedioPagoUpdate {
+  titular?: string;
+  detalle?: string;
+  pais?: string;
+  monto_garantia?: Money | null;
+  moneda?: Moneda | null;
+}
+
 export interface MedioPagoVerificar {
   verificado: boolean;
 }
@@ -198,6 +206,8 @@ export interface SeguroOut {
   moneda: Moneda;
   vigente?: boolean;
   articulo_ids?: number[];
+  /** Prima de la póliza (calculada por el backend como % del monto cubierto). */
+  premio?: Money;
 }
 
 // ─── Subastas + catálogo ────────────────────────────────────────────────────
@@ -212,7 +222,8 @@ export interface CatalogoItemOut {
   id: number;
   subasta_id: number;
   articulo_id: number;
-  precio_base: Money;
+  /** null cuando quien consulta no está registrado (precio base solo para registrados). */
+  precio_base: Money | null;
   orden: number;
   vendido: boolean;
 }
@@ -271,6 +282,8 @@ export interface PujaCreate {
   usuario_id: number;
   monto: number;
   retira_personalmente?: boolean;
+  /** Medio de pago con el que cancelaría si gana. */
+  medio_pago_id?: number | null;
 }
 
 export interface PujaOut {
@@ -281,6 +294,7 @@ export interface PujaOut {
   monto: Money;
   fecha_hora: string;
   estado: EstadoPuja;
+  medio_pago_id?: number | null;
 }
 
 export interface MejorOferta {
@@ -345,6 +359,7 @@ export interface SolicitudCreate {
   datos_historicos?: string | null;
   declara_propiedad: boolean;
   origen_licito_acreditado: boolean;
+  origen_documentacion_url?: string | null;
   acepta_devolucion_con_cargo: boolean;
   cantidad_elementos?: number;
   imagenes?: ImagenSolicitudCreate[];
@@ -357,7 +372,9 @@ export interface SolicitudOut {
   datos_historicos: string | null;
   declara_propiedad: boolean;
   origen_licito_acreditado: boolean;
+  origen_documentacion_url?: string | null;
   revisar_origen?: boolean;
+  autoridad_avisada?: boolean;
   acepta_devolucion_con_cargo: boolean;
   estado: EstadoSolicitud;
   motivo_rechazo: string | null;
@@ -365,6 +382,7 @@ export interface SolicitudOut {
   comision_propuesta: Money | null;
   fecha_subasta_propuesta: string | null;
   respuesta_usuario?: boolean | null;
+  gastos_devolucion?: Money | null;
   fecha: string;
   imagenes: ImagenSolicitudOut[];
   /** Populated by backend when estado = confirmada_por_usuario */

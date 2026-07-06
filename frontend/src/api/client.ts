@@ -40,6 +40,28 @@ export function resolveBaseUrl(): string {
 
 export const API_BASE_URL = resolveBaseUrl();
 
+/**
+ * Normaliza una URL de imagen para que el dispositivo pueda cargarla.
+ *
+ * El backend guarda las imágenes subidas bajo `/media/...`. Antes esa URL se
+ * guardaba absoluta contra el host por el que entró la subida (localhost,
+ * 10.0.2.2, o una IP LAN), y ese host NO siempre es alcanzable desde la APK
+ * (por eso se veían en el panel admin pero no en la app). Acá reescribimos el
+ * origen de cualquier URL `/media/...` al host que este cliente sí alcanza
+ * (`API_BASE_URL`). Las URLs públicas (Unsplash/Picsum/placeholder) y los URIs
+ * locales (`file://`, `content://`, `data:`) quedan intactos.
+ */
+export function resolveImageUrl(raw: string | null | undefined): string {
+  if (!raw) return raw ?? '';
+  // Media servida por el backend, guardada como ruta relativa.
+  if (raw.startsWith('/media/')) return `${API_BASE_URL}${raw}`;
+  // Media servida por el backend con host absoluto (viejo/otro) → re-apuntar.
+  const m = raw.match(/^https?:\/\/[^/]+(\/media\/.+)$/i);
+  if (m) return `${API_BASE_URL}${m[1]}`;
+  // URL pública/externa o URI local → sin cambios.
+  return raw;
+}
+
 /** Error that preserves the backend's `detail` string (400 puja messages, 404/409, etc.). */
 export class ApiError extends Error {
   status: number;

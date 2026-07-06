@@ -34,5 +34,9 @@ async def subir_imagen(request: Request, file: UploadFile = File(...)):
     name = f"{uuid.uuid4().hex}{ext}"
     (MEDIA_DIR / name).write_bytes(data)
 
-    url = str(request.base_url).rstrip("/") + f"/media/{name}"
-    return {"url": url}
+    # URL RELATIVA (portable): no la atamos al host por el que entró la subida.
+    # El panel admin la sirve mismo-origen y la app la resuelve contra su propio
+    # host (ver resolveImageUrl en frontend/src/api/client.ts). Antes se guardaba
+    # str(request.base_url)+/media/..., que quedaba fija a localhost/10.0.2.2/IP-LAN
+    # y no cargaba en la APK.
+    return {"url": f"/media/{name}"}

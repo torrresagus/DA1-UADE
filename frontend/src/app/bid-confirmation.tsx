@@ -81,6 +81,7 @@ export default function BidConfirmationScreen() {
         usuario_id: usuarioId,
         monto: montoN,
         retira_personalmente: retiraPersonalmente,
+        medio_pago_id: selectedMpId,
       });
       router.replace({
         pathname: '/result',

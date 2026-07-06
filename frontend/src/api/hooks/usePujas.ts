@@ -25,6 +25,9 @@ export interface CrearPujaVars {
   catalogo_item_id: number;
   usuario_id: number;
   monto: number;
+  retira_personalmente?: boolean;
+  /** Medio de pago con el que cancelaría si gana. */
+  medio_pago_id?: number | null;
 }
 
 /**

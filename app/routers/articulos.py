@@ -1,3 +1,12 @@
+"""FLUJO — Artículos (piezas), depósitos y seguros.
+
+Un artículo tiene nº de pieza, descripción, precio base, dueño, ~6 imágenes,
+`cantidad_elementos` (p. ej. juego de té de 18 piezas) y datos de arte
+(artista/fecha/historia). Al crearlo con dueño se genera automáticamente su póliza de
+SEGURO por el valor base. `seguros_router`: ver depósito y póliza, y `aumentar_seguro`
+(aumentar la cobertura pagando la diferencia del premio, que se notifica al beneficiario).
+El seguro cubre varias piezas sólo si son del MISMO dueño (`crear_seguro`).
+"""
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -6,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.models import Articulo, Deposito, ImagenArticulo, Seguro
+from app.routers.notificaciones import crear_notificacion
 
 from app.schemas.articulo import (
     ArticuloCreate,
@@ -154,7 +164,20 @@ def aumentar_seguro(seguro_id: int, payload: SeguroAumentar, db: Session = Depen
             status.HTTP_400_BAD_REQUEST,
             "El nuevo monto debe ser mayor al monto cubierto actual",
         )
+    # El cliente paga la diferencia del premio (prima) por la mayor cobertura.
+    diferencia_cobertura = Decimal(payload.nuevo_monto) - Decimal(s.monto_cubierto)
+    diferencia_premio = (diferencia_cobertura * settings.seguro_premio_pct).quantize(Decimal("0.01"))
     s.monto_cubierto = Decimal(payload.nuevo_monto)
+    crear_notificacion(
+        db,
+        usuario_id=s.beneficiario_id,
+        tipo="seguro",
+        titulo="Aumentaste la cobertura de tu póliza",
+        cuerpo=(
+            f"Nueva cobertura: {s.monto_cubierto} {s.moneda}. "
+            f"Diferencia de premio a pagar: {diferencia_premio} {s.moneda}."
+        ),
+    )
     db.commit()
     db.refresh(s)
     return s

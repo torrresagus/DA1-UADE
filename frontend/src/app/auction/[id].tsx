@@ -26,6 +26,7 @@ export default function AuctionDetailScreen() {
   const { data: vm, isLoading, isError, refetch } = useAuctionDetail(
     catalogoItemId,
     usuario?.categoria,
+    usuario?.id ?? null,
   );
   const { data: medios } = useMediosPago(usuario?.id ?? null);
   const hasVerifiedMedio = !!medios?.some((m) => m.verificado);
@@ -125,11 +126,17 @@ export default function AuctionDetailScreen() {
           <Card elevated style={styles.bidCard}>
             <View style={styles.flex}>
               <ThemedText type="caption" themeColor="textSecondary">
-                Puja actual
+                {vm.currentBid == null ? 'Precio' : 'Puja actual'}
               </ThemedText>
-              <ThemedText type="price" style={styles.bigPrice}>
-                ${fmtPrice(vm.currentBid)} {vm.moneda}
-              </ThemedText>
+              {vm.currentBid == null ? (
+                <ThemedText type="smallBold" themeColor="textSecondary" style={{ marginTop: 4 }}>
+                  Iniciá sesión para ver el precio
+                </ThemedText>
+              ) : (
+                <ThemedText type="price" style={styles.bigPrice}>
+                  ${fmtPrice(vm.currentBid)} {vm.moneda}
+                </ThemedText>
+              )}
             </View>
             {vm.timingLabel ? (
               <View style={styles.timer}>

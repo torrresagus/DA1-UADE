@@ -17,7 +17,9 @@ class CatalogoItemOut(ORMBase):
     id: int
     subasta_id: int
     articulo_id: int
-    precio_base: Decimal
+    # Optional: se oculta (None) a quien no está registrado. Solo los usuarios
+    # registrados (de cualquier categoría) pueden ver el precio base.
+    precio_base: Decimal | None = None
     orden: int
     vendido: bool
 

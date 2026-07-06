@@ -19,7 +19,10 @@ class Puja(Base):
     fecha_hora: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     estado: Mapped[EstadoPuja] = mapped_column(Enum(EstadoPuja), default=EstadoPuja.CONFIRMADA)
     retira_personalmente: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Medio de pago con el que el postor cancelaría si gana. Se propaga a la Venta al cierre.
+    medio_pago_id: Mapped[int | None] = mapped_column(ForeignKey("medios_pago.id"), default=None)
 
     subasta = relationship("Subasta", back_populates="pujas")
     catalogo_item = relationship("CatalogoItem", back_populates="pujas")
     usuario = relationship("Usuario", back_populates="pujas")
+    medio_pago = relationship("MedioPago")
