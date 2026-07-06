@@ -175,11 +175,11 @@ def procesar_subastas_programadas() -> int:
         ahora = datetime.utcnow()
         subastas = (
             db.query(Subasta)
-            .filter(Subasta.estado == EstadoSubasta.PROGRAMADA.name, Subasta.fecha_hora <= ahora)
+            .filter(Subasta.estado == EstadoSubasta.PROGRAMADA, Subasta.fecha_hora <= ahora)
             .all()
         )
         for subasta in subastas:
-            subasta.estado = EstadoSubasta.ABIERTA.name
+            subasta.estado = EstadoSubasta.ABIERTA
             subasta.fecha_hora = ahora + _DURACION_SUBASTA
         if subastas:
             db.commit()
@@ -198,12 +198,12 @@ def procesar_subastas_vencidas() -> int:
         ahora = datetime.utcnow()
         subastas = (
             db.query(Subasta)
-            .filter(Subasta.estado == EstadoSubasta.ABIERTA.name, Subasta.fecha_hora <= ahora)
+            .filter(Subasta.estado == EstadoSubasta.ABIERTA, Subasta.fecha_hora <= ahora)
             .all()
         )
         cerradas = 0
         for subasta in subastas:
-            subasta.estado = EstadoSubasta.CERRADA.name
+            subasta.estado = EstadoSubasta.CERRADA
             for item in subasta.catalogo:
                 if not item.vendido:
                     _cerrar_item(db, item)
