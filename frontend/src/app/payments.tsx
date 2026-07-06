@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import type { CuentaCobroCreate, CuentaCobroOut, MedioPagoCreate, MedioPagoOut, MedioPagoUpdate, Moneda, TipoMedioPago } from '@/api/types';
@@ -493,7 +493,7 @@ export default function PaymentsScreen() {
 
       {/* ── Modal cuenta de cobro ── */}
       <Modal visible={cuentaFormOpen} transparent animationType="slide" onRequestClose={() => setCuentaFormOpen(false)}>
-        <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={styles.backdrop} behavior="padding">
           <View style={[styles.sheet, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.sheetHeader}>
               <ThemedText type="heading">Agregar cuenta de cobro</ThemedText>
@@ -506,7 +506,7 @@ export default function PaymentsScreen() {
                 style={styles.iconBtn}
               />
             </View>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.form}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets contentContainerStyle={styles.form}>
               <Input
                 label="Banco *"
                 placeholder="Ej: Banco Galicia"
@@ -581,7 +581,7 @@ export default function PaymentsScreen() {
 
       {/* ── Modal de edición de método ── */}
       <Modal visible={editing != null} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
-        <View style={styles.backdrop}>
+        <KeyboardAvoidingView style={styles.backdrop} behavior="padding">
           <View style={[styles.sheet, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.sheetHeader}>
               <ThemedText type="heading">Editar método de pago</ThemedText>
@@ -594,7 +594,7 @@ export default function PaymentsScreen() {
                 style={styles.iconBtn}
               />
             </View>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.form}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets contentContainerStyle={styles.form}>
               <Input label="Titular" value={editForm.titular} onChangeText={setEdit('titular')} />
               <Input label="Descripción / alias" value={editForm.detalle} onChangeText={setEdit('detalle')} />
               <Input label="País" value={editForm.pais} onChangeText={setEdit('pais')} />
@@ -636,12 +636,12 @@ export default function PaymentsScreen() {
               />
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Modal del formulario ── */}
       <Modal visible={formOpen} transparent animationType="slide" onRequestClose={closeForm}>
-        <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={styles.backdrop} behavior="padding">
           <View style={[styles.sheet, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.sheetHeader}>
               <ThemedText type="heading">Agregar método de pago</ThemedText>
@@ -655,7 +655,7 @@ export default function PaymentsScreen() {
               />
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.form}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets contentContainerStyle={styles.form}>
               {/* Selector de tipo */}
               <View style={styles.field}>
                 <FieldLabel label="Tipo" />

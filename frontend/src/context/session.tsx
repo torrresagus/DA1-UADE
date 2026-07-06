@@ -82,7 +82,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     async (u: UsuarioOut) => {
       setUsuario(u);
       setStatus('authed');
-      await persist(u);
+      setIsGuest(false);
+      await Promise.all([persist(u), AsyncStorage.removeItem(GUEST_KEY)]);
     },
     [persist],
   );
