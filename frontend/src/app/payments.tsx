@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import type { CuentaCobroCreate, CuentaCobroOut, MedioPagoCreate, MedioPagoOut, Moneda, TipoMedioPago } from '@/api/types';
@@ -445,7 +445,7 @@ export default function PaymentsScreen() {
 
       {/* ── Modal cuenta de cobro ── */}
       <Modal visible={cuentaFormOpen} transparent animationType="slide" onRequestClose={() => setCuentaFormOpen(false)}>
-        <View style={styles.backdrop}>
+        <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={[styles.sheet, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.sheetHeader}>
               <ThemedText type="heading">Agregar cuenta de cobro</ThemedText>
@@ -528,12 +528,12 @@ export default function PaymentsScreen() {
               />
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Modal del formulario ── */}
       <Modal visible={formOpen} transparent animationType="slide" onRequestClose={closeForm}>
-        <View style={styles.backdrop}>
+        <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={[styles.sheet, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.sheetHeader}>
               <ThemedText type="heading">Agregar método de pago</ThemedText>
@@ -863,7 +863,7 @@ export default function PaymentsScreen() {
               />
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </Screen>
   );
